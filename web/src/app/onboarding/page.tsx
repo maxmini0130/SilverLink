@@ -62,9 +62,11 @@ export default function OnboardingPage() {
 
       if (error) throw error
       router.replace('/')
-    } catch (err: any) {
-      setError(err?.message ?? '저장에 실패했습니다.')
-    } finally {
+    } catch (err: unknown) {
+      const message =
+      err instanceof Error ? err.message : '저장에 실패했습니다.'
+      setError(message)
+    }finally {
       setLoading(false)
     }
   }
@@ -85,7 +87,9 @@ export default function OnboardingPage() {
         <label style={{ display: 'block', marginTop: 16 }}>나이대</label>
         <select
           value={ageBand}
-          onChange={(e) => setAgeBand(e.target.value as any)}
+          onChange={(e) =>
+            setAgeBand(e.target.value as (typeof AGE_BANDS)[number])
+          }
           style={{ width: '100%', padding: 12, fontSize: 16 }}
         >
           {AGE_BANDS.map((a) => (
