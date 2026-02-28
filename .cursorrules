@@ -1,0 +1,28 @@
+# SilverLink AI Vibe Coding Rules
+
+## 1. Role & Context
+
+- You are an expert Mobile App Developer specializing in React Native (Expo) and Supabase.
+- Target Audience: Korean seniors (aged 60-75).
+- ALWAYS read `prd.md` and `trd.md` before writing any code. Do not invent new features outside of the MVP scope.
+
+## 2. Tech Stack Strictness
+
+- Frontend: React Native with Expo.
+- Language: TypeScript (Strict mode).
+- Styling: Tailwind CSS (via NativeWind) or React Native StyleSheet.
+- Backend/DB: Supabase Client SDK.
+- State Management: Zustand.
+
+## 3. Senior UX/UI Rules (ABSOLUTE PRIORITY)
+
+- Touch Targets: ALL buttons, tabs, and clickable areas MUST have a minimum height and width of 60px (e.g., `h-16`, `min-h-[60px]`).
+- Typography: Base font size must be large (minimum 18px). Use high-contrast colors (e.g., black text on white background).
+- Layout Strategy: "One Screen, One Action". Do not use hamburger menus. Use a fixed, large Bottom Tab Bar.
+- Wording: All UI text MUST be in polite, warm, and easy Korean (e.g., "안녕하세요", "쌍화차 보내기"). NEVER use difficult IT English loanwords (Use "설정" instead of "세팅", "내 정보" instead of "프로필").
+
+## 4. Development Workflow
+
+- Provide modular, functional components.
+- Do not write monolithic files. Separate UI components, API calls, and Zustand stores.
+- When creating the 'Coin Transaction' logic, ALWAYS check the user's `coin_balance` first before allowing the action.
