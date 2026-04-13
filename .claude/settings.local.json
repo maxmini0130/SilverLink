@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(printf '\\\\n\\\\n\\\\n\\\\n\\\\n')",
+      "Bash(pnpm add:*)",
+      "Bash(wc:*)",
+      "Bash(rm \"C:/MaxMini_Project/SilverLink/web/src/app/groups/page.tsx\" \"C:/MaxMini_Project/SilverLink/web/src/app/groups/[id]/page.tsx\" \"C:/MaxMini_Project/SilverLink/web/src/app/groups/[id]/chat/page.tsx\")",
+      "Bash(rmdir \"C:/MaxMini_Project/SilverLink/web/src/app/groups/[id]/chat\")",
+      "Bash(rmdir \"C:/MaxMini_Project/SilverLink/web/src/app/groups/[id]\")",
+      "Bash(pnpm tsc:*)"
+    ]
+  }
+}
