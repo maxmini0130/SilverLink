@@ -1,0 +1,42 @@
+SilverLink work summary for 2026-04-14
+
+1. Profile and people discovery
+- Expanded profiles with relationship purpose, bio, avatar URL, and default post visibility.
+- Added people list and person detail pages.
+- Added interest sending, mutual-interest detection, and friendship creation.
+
+2. Messaging
+- Added direct conversation creation with permission checks.
+- Added message list and direct message detail pages.
+- Added realtime message updates.
+
+3. Relationships and My page
+- Added relationship management page with sent interests, received interests, friendships, and ongoing conversations.
+- Added My page with profile summary, activity summary, and my posts overview.
+
+4. Feed
+- Added posts table and post reactions table.
+- Implemented feed creation, visibility options, feed listing, and simple reactions.
+- Added home feed preview and feed navigation.
+
+5. Safety and settings
+- Added block and report APIs plus UI actions for profile, posts, and messages.
+- Added settings page for default visibility, blocked users, and help/contact guidance.
+- Added starter RLS SQL and safety/settings migrations.
+
+6. Admin
+- Added admin reports page for reviewing reports and updating status.
+- Added admin report status update API.
+
+7. Migrations added
+- supabase/migrations/20260413_expand_profiles_for_people.sql
+- supabase/migrations/20260413_add_relationships.sql
+- supabase/migrations/20260413_add_direct_messages.sql
+- supabase/migrations/20260414_add_posts.sql
+- supabase/migrations/20260414_add_safety_and_settings.sql
+- supabase/migrations/20260414_rls_starter.sql
+
+8. Notes
+- SQL migrations still need to be applied in Supabase.
+- RLS policies are a starter baseline and should be reviewed before production rollout.
+- Lint check passed after the changes.

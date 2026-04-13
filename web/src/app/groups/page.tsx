@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { AppNav } from '@/components/app-nav'
 
 type GroupRow = {
   id: string
@@ -48,6 +49,7 @@ export default function GroupsPage() {
           관리자: 모임 생성
         </Link>
       </div>
+      <AppNav />
 
       <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
         {groups.map((g) => (
