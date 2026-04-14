@@ -148,6 +148,13 @@ export default function MessageDetailPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      void sendMessage()
+    }
+  }
+
   async function sendMessage() {
     const message = text.trim()
     if (!message || !currentUserId) return
@@ -215,10 +222,14 @@ export default function MessageDetailPage() {
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="메시지 입력"
-            style={{ flex: 1, padding: 12, fontSize: 16 }}
+            onKeyDown={handleKeyDown}
+            placeholder="메시지 입력 (Enter로 전송)"
+            style={{ flex: 1, padding: 12, fontSize: 16, borderRadius: 10, border: '1px solid #d6d3d1' }}
           />
-          <button onClick={sendMessage} style={{ padding: '12px 16px' }}>
+          <button
+            onClick={() => void sendMessage()}
+            style={{ padding: '12px 16px', borderRadius: 10, background: '#1c1917', color: '#fff', border: 'none', fontWeight: 600 }}
+          >
             전송
           </button>
         </div>

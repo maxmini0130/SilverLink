@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { SafetyActions } from '@/components/safety-actions'
@@ -56,7 +56,9 @@ export default function PostsPage() {
   const [visibility, setVisibility] = useState<Visibility>('members')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -181,6 +183,35 @@ export default function PostsPage() {
     })
   }, [blockedIds, currentUserId, friendIds, interestIds, posts, sharedGroupIds])
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !currentUserId) return
+
+    setUploadingImage(true)
+    setError(null)
+
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `${currentUserId}/${Date.now()}.${ext}`
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(path, file, { upsert: false })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(data.path)
+
+      setImageUrl(publicUrl)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   async function createPost(e: React.FormEvent) {
     e.preventDefault()
     if (!currentUserId) return
@@ -290,13 +321,49 @@ export default function PostsPage() {
       >
         <h2 style={{ fontSize: 22, fontWeight: 700 }}>새 피드 작성</h2>
         <form onSubmit={createPost}>
-          <label style={{ display: 'block', marginTop: 14 }}>사진 URL</label>
-          <input
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            style={{ width: '100%', padding: 12, fontSize: 16 }}
-            placeholder="https://..."
-          />
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontWeight: 600, marginBottom: 10 }}>사진</div>
+            {imageUrl && (
+              <div style={{ marginBottom: 10 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt="업로드된 이미지 미리보기"
+                  style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 14, background: '#e7e5e4' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  style={{ marginTop: 6, padding: '6px 12px', fontSize: 13, borderRadius: 999, border: '1px solid #d6d3d1', background: '#fff' }}
+                >
+                  사진 제거
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 999,
+                border: '1px solid #d6d3d1',
+                background: '#fafaf9',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {uploadingImage ? '업로드 중...' : imageUrl ? '사진 교체' : '사진 선택'}
+            </button>
+            <span style={{ marginLeft: 10, color: '#78716c', fontSize: 13 }}>JPG, PNG, WEBP · 최대 10MB</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
 
           <label style={{ display: 'block', marginTop: 14 }}>짧은 글</label>
           <textarea
@@ -321,7 +388,10 @@ export default function PostsPage() {
 
           {error && <p style={{ marginTop: 10, color: 'crimson' }}>{error}</p>}
 
-          <button disabled={submitting} style={{ marginTop: 16, padding: '12px 16px' }}>
+          <button
+            disabled={submitting || uploadingImage}
+            style={{ marginTop: 16, padding: '12px 16px', fontWeight: 700 }}
+          >
             {submitting ? '등록 중...' : '피드 올리기'}
           </button>
         </form>
@@ -342,7 +412,7 @@ export default function PostsPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <Link href={`/people/${post.user_id}`} style={{ display: 'flex', gap: 12, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
                   <ProfileAvatar
                     avatarUrl={author?.avatar_url ?? null}
                     nickname={author?.nickname ?? '사용자'}
@@ -355,7 +425,7 @@ export default function PostsPage() {
                       {[author?.region, visibilityLabel(post.visibility)].filter(Boolean).join(' · ')}
                     </div>
                   </div>
-                </div>
+                </Link>
                 <div style={{ color: '#78716c', fontSize: 13 }}>{formatDate(post.created_at)}</div>
               </div>
 
@@ -410,9 +480,17 @@ export default function PostsPage() {
                   )
                 })}
               </div>
-              {currentUserId !== post.user_id && (
-                <SafetyActions targetUserId={post.user_id} postId={post.id} compact />
-              )}
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <Link
+                  href={`/posts/${post.id}`}
+                  style={{ textDecoration: 'underline', color: '#57534e', fontWeight: 600, fontSize: 14 }}
+                >
+                  상세 보기
+                </Link>
+                {currentUserId !== post.user_id && (
+                  <SafetyActions targetUserId={post.user_id} postId={post.id} compact />
+                )}
+              </div>
             </article>
           )
         })}

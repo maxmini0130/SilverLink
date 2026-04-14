@@ -7,6 +7,7 @@ const LINKS = [
   { href: '/groups', label: '모임' },
   { href: '/messages', label: '대화' },
   { href: '/relationships', label: '관계' },
+  { href: '/notifications', label: '알림' },
   { href: '/me', label: '마이' },
 ]
 

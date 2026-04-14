@@ -22,10 +22,12 @@ type ConversationSummary = {
 export default function RelationshipsPage() {
   const supabase = createClient()
   const [me, setMe] = useState<ProfileRow | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [sentInterestProfiles, setSentInterestProfiles] = useState<ProfileRow[]>([])
   const [receivedInterestProfiles, setReceivedInterestProfiles] = useState<ProfileRow[]>([])
   const [friendProfiles, setFriendProfiles] = useState<ProfileRow[]>([])
   const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
+  const [makingFriendId, setMakingFriendId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,6 +43,8 @@ export default function RelationshipsPage() {
         setLoading(false)
         return
       }
+
+      setCurrentUserId(user.id)
 
       const { data: myProfile } = await supabase
         .from('profiles')
@@ -215,6 +219,32 @@ export default function RelationshipsPage() {
     })()
   }, [supabase])
 
+  async function makeFriend(targetUserId: string) {
+    if (!currentUserId) return
+    setMakingFriendId(targetUserId)
+    setError(null)
+
+    const low = currentUserId < targetUserId ? currentUserId : targetUserId
+    const high = currentUserId < targetUserId ? targetUserId : currentUserId
+
+    const { error: insertError } = await supabase.from('friendships').insert({
+      user_low_id: low,
+      user_high_id: high,
+    })
+
+    if (insertError && !insertError.message.toLowerCase().includes('duplicate')) {
+      setError(insertError.message)
+      setMakingFriendId(null)
+      return
+    }
+
+    // 받은 관심 목록에서 제거하고 1촌 목록에 추가
+    const profile = receivedInterestProfiles.find((p) => p.user_id === targetUserId)
+    setReceivedInterestProfiles((prev) => prev.filter((p) => p.user_id !== targetUserId))
+    if (profile) setFriendProfiles((prev) => [...prev, profile])
+    setMakingFriendId(null)
+  }
+
   const totalConnections = useMemo(
     () =>
       sentInterestProfiles.length +
@@ -265,13 +295,66 @@ export default function RelationshipsPage() {
           actionHref={(profile) => `/people/${profile.user_id}`}
         />
 
-        <RelationshipSection
-          title="나에게 온 관심"
-          emptyText="아직 받은 관심이 없어요."
-          items={receivedInterestProfiles}
-          actionLabel="상세 보기"
-          actionHref={(profile) => `/people/${profile.user_id}`}
-        />
+        <section
+          style={{
+            padding: 20,
+            borderRadius: 18,
+            border: '1px solid #e7e5e4',
+            background: '#fff',
+          }}
+        >
+          <h2 style={{ fontSize: 22, fontWeight: 700 }}>나에게 온 관심</h2>
+          <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+            {receivedInterestProfiles.map((profile) => (
+              <div
+                key={profile.user_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: 14,
+                  borderRadius: 14,
+                  background: '#fafaf9',
+                }}
+              >
+                <ProfileAvatar avatarUrl={profile.avatar_url} nickname={profile.nickname} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700 }}>{profile.nickname}</div>
+                  <div style={{ marginTop: 4, color: '#57534e' }}>
+                    {[profile.region, profile.relationship_purpose].filter(Boolean).join(' · ') || '프로필 정보 준비 중'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Link
+                    href={`/people/${profile.user_id}`}
+                    style={{ textDecoration: 'underline', color: '#57534e', fontWeight: 600 }}
+                  >
+                    프로필 보기
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void makeFriend(profile.user_id)}
+                    disabled={makingFriendId === profile.user_id}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 999,
+                      border: 'none',
+                      background: '#1c1917',
+                      color: '#fff',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {makingFriendId === profile.user_id ? '처리 중...' : '1촌 맺기'}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {receivedInterestProfiles.length === 0 && (
+              <div style={{ color: '#57534e' }}>아직 받은 관심이 없어요.</div>
+            )}
+          </div>
+        </section>
 
         <RelationshipSection
           title="1촌 목록"

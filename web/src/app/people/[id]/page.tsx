@@ -83,7 +83,7 @@ export default async function PersonDetailPage({
             <div style={{ fontSize: 18, fontWeight: 700 }}>관심사</div>
             <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {(profile.hobbies ?? []).length > 0 ? (
-                profile.hobbies?.map((hobby) => (
+                profile.hobbies?.map((hobby: string) => (
                   <span
                     key={hobby}
                     style={{

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppNav } from '@/components/app-nav'
@@ -115,12 +116,16 @@ export default async function HomePage() {
           <div style={{ fontSize: 20, fontWeight: 700 }}>오늘의 추천 사람</div>
           <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
             {peopleCards.map((person) => (
-              <div key={person.user_id} style={{ paddingBottom: 10, borderBottom: '1px solid #f5f5f4' }}>
+              <Link
+                key={person.user_id}
+                href={`/people/${person.user_id}`}
+                style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+              >
                 <div style={{ fontWeight: 600 }}>{person.nickname}</div>
                 <div style={{ color: '#57534e', marginTop: 4 }}>
                   {[person.region, person.relationship_purpose].filter(Boolean).join(' · ') || '프로필 준비 중'}
                 </div>
-              </div>
+              </Link>
             ))}
             {peopleCards.length === 0 && (
               <div style={{ color: '#57534e' }}>아직 추천할 사람이 없어요.</div>
@@ -132,12 +137,16 @@ export default async function HomePage() {
           <div style={{ fontSize: 20, fontWeight: 700 }}>추천 모임</div>
           <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
             {groupCards.map((group) => (
-              <div key={group.id} style={{ paddingBottom: 10, borderBottom: '1px solid #f5f5f4' }}>
+              <Link
+                key={group.id}
+                href={`/groups/${group.id}`}
+                style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+              >
                 <div style={{ fontWeight: 600 }}>{group.title}</div>
                 <div style={{ color: '#57534e', marginTop: 4 }}>
                   {[group.category, group.region].filter(Boolean).join(' · ')}
                 </div>
-              </div>
+              </Link>
             ))}
             {groupCards.length === 0 && (
               <div style={{ color: '#57534e' }}>아직 추천할 모임이 없어요.</div>
@@ -155,12 +164,16 @@ export default async function HomePage() {
         </div>
         <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
           {postCards.map((post) => (
-            <div key={post.id} style={{ paddingBottom: 10, borderBottom: '1px solid #f5f5f4' }}>
+            <Link
+              key={post.id}
+              href={`/posts/${post.id}`}
+              style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+            >
               <div style={{ fontWeight: 600 }}>{recentProfileMap.get(post.user_id) ?? '사용자'}</div>
               <div style={{ marginTop: 4, color: '#57534e' }}>
                 {post.content?.slice(0, 80) || (post.image_url ? '사진을 올렸어요.' : '새 피드를 작성했어요.')}
               </div>
-            </div>
+            </Link>
           ))}
           {postCards.length === 0 && (
             <div style={{ color: '#57534e' }}>아직 올라온 피드가 없어요.</div>

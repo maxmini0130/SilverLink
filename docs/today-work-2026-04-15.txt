@@ -1,0 +1,144 @@
+================================================================
+SilverLink MVP 작업 로그
+날짜: 2026-04-15
+브랜치: codex/mvp-social-flows
+================================================================
+
+----------------------------------------------------------------
+[완료된 작업]
+----------------------------------------------------------------
+
+1. Supabase 마이그레이션 SQL 작성
+   - supabase/migrations/20260414_full_schema.sql
+     · 전체 테이블 생성 (15개, idempotent)
+     · 인덱스 생성
+     · RLS 전면 설계 (posts SELECT 포함, 기존 누락 정책 추가)
+     · blocks SELECT 양방향 처리
+     · group_messages 멤버 전용 접근
+
+   - supabase/migrations/20260414_storage_setup.sql
+     · avatars 버킷 (public, 5MB, 이미지)
+     · post-images 버킷 (public, 10MB, 이미지)
+     · Storage RLS: 본인 폴더만 업로드 가능
+
+   - supabase/migrations/20260414_auth_trigger.sql
+     · 신규 가입 시 profiles 행 자동 생성 트리거
+
+   - supabase/migrations/20260415_visibility_rls.sql
+     · posts 공개범위 visibility 기반 RLS 강화
+     · friends: friendships 조인
+     · interested: relationship_requests 양방향 조인
+     · same_group: group_members 공유 조인
+     · 차단 관계 시 전체 차단
+
+2. 그룹 채팅 (web/src/app/groups/[id]/chat/page.tsx)
+   - 닉네임 표시: user_id.slice 대신 profiles 실제 닉네임 표시
+   - 비멤버 접근 차단: group_members 조회 후 미참여자 리디렉트
+   - Enter 키 전송 지원
+   - 뒤로가기 링크 추가
+
+3. 온보딩 (web/src/app/onboarding/page.tsx)
+   - 프로필 사진 파일 업로드 (avatars Storage)
+   - 취미 버튼 선택 시 다크 배경 표시
+   - ?edit=1 파라미터로 수정 모드 지원
+
+4. 피드 목록 (web/src/app/posts/page.tsx)
+   - 사진 파일 업로드 (post-images Storage)
+   - 작성자 → /people/[id] 링크
+   - 각 카드 하단 "상세 보기" → /posts/[id] 링크
+
+5. 피드 상세 페이지 신규 생성 (web/src/app/posts/[id]/page.tsx)
+   - 차단 관계 확인
+   - 작성자 프로필 표시 및 링크
+   - 반응 버튼 (따뜻해요/응원해요/반가워요) 토글
+   - 신고/차단 (SafetyActions)
+   - 내 피드일 때 관리 링크
+
+6. 마이 페이지 (web/src/app/me/page.tsx)
+   - window.prompt 방식 피드 수정 → 인라인 폼으로 교체
+   - 이미지 업로드/교체, 본문 수정, 공개범위 변경
+   - 삭제 확인 후 즉시 목록 반영
+
+7. 미들웨어 (web/middleware.ts)
+   - /account 경로 공개 경로 목록 추가 (비밀번호 재설정)
+
+8. 홈 페이지 (web/src/app/page.tsx)
+   - 추천 사람 카드 → /people/[id] 링크
+   - 추천 모임 카드 → /groups/[id] 링크
+   - 새 피드 카드 → /posts/[id] 링크
+
+9. DM 채팅 (web/src/app/messages/[id]/page.tsx)
+   - Enter 키 전송 지원
+   - 입력창/전송 버튼 스타일 통일
+
+10. 관계 관리 (web/src/app/relationships/page.tsx)
+    - "나에게 온 관심" 섹션에 "1촌 맺기" 버튼 추가
+    - 1촌 맺기 즉시 반영 (목록 이동)
+
+11. 알림 페이지 신규 생성 (web/src/app/notifications/page.tsx)
+    - 받은 관심 (relationship_requests)
+    - 내 피드 반응 (post_reactions)
+    - 새 대화 (conversation_members)
+    - 종류별 배지 표시, 날짜 기준 정렬
+
+12. AppNav (web/src/components/app-nav.tsx)
+    - 알림 탭 추가
+
+13. 사람 상세 (web/src/app/people/[id]/page.tsx)
+    - hobbies map 타입 에러 수정 (: string 추가)
+
+----------------------------------------------------------------
+[다음에 해야 할 작업 (우선순위 순)]
+----------------------------------------------------------------
+
+[높음]
+
+1. 사람 상세 페이지 피드 미리보기
+   - /people/[id] 하단에 상대방 공개 피드 최근 3개 표시
+   - MVP 스펙 9.2에 명시된 기능 (현재 미구현)
+   - 공개범위 RLS가 적용된 posts 쿼리 사용
+
+2. 모임 만들기 (일반 사용자)
+   - /groups 페이지에 "모임 만들기" 버튼 추가
+   - API Route Handler: POST /api/groups
+   - 입력: 제목, 카테고리, 지역, 소개
+   - 현재 admin 전용으로만 가능해서 일반 사용자 생성 불가
+
+3. 관심 보내기 취소
+   - /relationships "내가 보낸 관심" 섹션에 취소 버튼 추가
+   - API: DELETE /api/interests 또는 supabase.delete 직접 사용
+
+[중간]
+
+4. 알림 읽음 처리
+   - 현재 알림 페이지는 읽음/안읽음 구분 없음
+   - notifications 테이블 신규 추가 또는
+     relationship_requests에 seen_at 컬럼 추가 방식 검토
+
+5. /groups/[id] 멤버/비멤버 분기 점검
+   - 비멤버: 참여 버튼만 표시
+   - 멤버: 채팅 버튼 표시
+   - 현재 구현 검증 필요
+
+[낮음]
+
+6. 홈 피드 공개범위 표시 개선
+   - 홈 피드 섹션은 RLS로 필터링됨
+   - 프론트 필터 로직 정리 (중복 필터 제거)
+
+7. 관리자 페이지 기능 보완
+   - /admin/reports: 신고 처리 (수락/기각)
+   - /admin/groups: 모임 승인/삭제
+
+----------------------------------------------------------------
+[Supabase SQL 실행 필요 항목]
+----------------------------------------------------------------
+
+아래 파일들을 Supabase SQL Editor에서 순서대로 실행해야 합니다:
+
+  1. supabase/migrations/20260414_full_schema.sql   ← 이미 실행 완료
+  2. supabase/migrations/20260414_storage_setup.sql ← 이미 실행 완료
+  3. supabase/migrations/20260414_auth_trigger.sql  ← 이미 실행 완료
+  4. supabase/migrations/20260415_visibility_rls.sql ← 이미 실행 완료
+
+================================================================
