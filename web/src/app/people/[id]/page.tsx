@@ -43,6 +43,13 @@ export default async function PersonDetailPage({
 
   if (!profile) notFound()
 
+  const { data: recentPosts } = await supabase
+    .from('posts')
+    .select('id,content,image_url,visibility,created_at')
+    .eq('user_id', id)
+    .order('created_at', { ascending: false })
+    .limit(3)
+
   return (
     <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
       <Link href="/people" style={{ textDecoration: 'underline', color: '#57534e' }}>
@@ -117,9 +124,89 @@ export default async function PersonDetailPage({
         </div>
       </section>
 
+      <section style={{ marginTop: 20 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>최근 피드</div>
+        {recentPosts && recentPosts.length > 0 ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            {recentPosts.map((post) => (
+              <Link
+                key={post.id}
+                href={`/posts/${post.id}`}
+                style={{
+                  display: 'block',
+                  padding: 16,
+                  borderRadius: 16,
+                  border: '1px solid #e7e5e4',
+                  background: '#fff',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
+              >
+                {post.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={post.image_url}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      maxHeight: 220,
+                      objectFit: 'cover',
+                      borderRadius: 12,
+                      marginBottom: 10,
+                      background: '#f5f5f4',
+                    }}
+                  />
+                )}
+                {post.content && (
+                  <p
+                    style={{
+                      fontSize: 16,
+                      color: '#1c1917',
+                      margin: 0,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {post.content}
+                  </p>
+                )}
+                <div style={{ marginTop: 8, fontSize: 13, color: '#78716c' }}>
+                  {new Date(post.created_at).toLocaleDateString('ko-KR')} · {visibilityLabel(post.visibility)}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: 16,
+              borderRadius: 16,
+              border: '1px solid #e7e5e4',
+              background: '#fff',
+              color: '#57534e',
+            }}
+          >
+            공개된 피드가 아직 없어요.
+          </div>
+        )}
+      </section>
+
       <AppNav />
     </div>
   )
+}
+
+function visibilityLabel(v: string) {
+  switch (v) {
+    case 'private': return '나만 보기'
+    case 'friends': return '1촌만'
+    case 'interested': return '관심 있는 사람만'
+    case 'same_group': return '같은 모임'
+    case 'members': return '전체 공개'
+    default: return v
+  }
 }
 
 function ProfileAvatar({

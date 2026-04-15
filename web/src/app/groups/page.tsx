@@ -43,10 +43,21 @@ export default function GroupsPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>모임</h1>
-        <Link href="/admin/groups" style={{ textDecoration: 'underline' }}>
-          관리자: 모임 생성
+        <Link
+          href="/groups/new"
+          style={{
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: '#1c1917',
+            color: '#fff',
+            textDecoration: 'none',
+            fontSize: 15,
+            fontWeight: 700,
+          }}
+        >
+          + 모임 만들기
         </Link>
       </div>
       <AppNav />
@@ -72,7 +83,7 @@ export default function GroupsPage() {
             {g.description && <div style={{ marginTop: 8, opacity: 0.8 }}>{g.description}</div>}
           </Link>
         ))}
-        {groups.length === 0 && <div>아직 모임이 없어요. (관리자 페이지에서 생성)</div>}
+        {groups.length === 0 && <div>아직 모임이 없어요. 첫 모임을 만들어 보세요.</div>}
       </div>
     </div>
   )

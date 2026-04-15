@@ -13,6 +13,7 @@ type NotificationItem = {
   detail: string
   href: string
   createdAt: string
+  unread: boolean
 }
 
 export default function NotificationsPage() {
@@ -20,6 +21,8 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [marking, setMarking] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -33,6 +36,16 @@ export default function NotificationsPage() {
         setLoading(false)
         return
       }
+      setUserId(user.id)
+
+      // 0) 마지막으로 읽은 시각
+      const { data: stateRow } = await supabase
+        .from('user_notification_state')
+        .select('last_read_at')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      const lastReadAt = stateRow?.last_read_at ?? '1970-01-01T00:00:00Z'
 
       // 1) 나에게 온 관심
       const { data: interests, error: interestError } = await supabase
@@ -104,9 +117,12 @@ export default function NotificationsPage() {
       )
 
       const notifications: NotificationItem[] = []
+      const isUnread = (createdAt: string) =>
+        !!createdAt && createdAt.localeCompare(lastReadAt) > 0
 
       for (const r of interests ?? []) {
         const uid = r.requester_user_id as string
+        const createdAt = r.created_at as string
         notifications.push({
           id: `interest-${uid}`,
           kind: 'interest_received',
@@ -114,12 +130,14 @@ export default function NotificationsPage() {
           actorNickname: nicknameMap.get(uid) ?? '누군가',
           detail: '님이 관심을 보냈어요.',
           href: `/people/${uid}`,
-          createdAt: r.created_at as string,
+          createdAt,
+          unread: isUnread(createdAt),
         })
       }
 
       for (const r of reactions ?? []) {
         const uid = r.user_id as string
+        const createdAt = r.created_at as string
         notifications.push({
           id: `reaction-${r.post_id}-${uid}-${r.reaction_type}`,
           kind: 'post_reaction',
@@ -127,7 +145,8 @@ export default function NotificationsPage() {
           actorNickname: nicknameMap.get(uid) ?? '누군가',
           detail: `님이 내 피드에 "${r.reaction_type as string}" 반응을 남겼어요.`,
           href: `/posts/${r.post_id as number}`,
-          createdAt: r.created_at as string,
+          createdAt,
+          unread: isUnread(createdAt),
         })
       }
 
@@ -146,6 +165,7 @@ export default function NotificationsPage() {
           detail: '님과의 대화가 시작됐어요.',
           href: `/messages/${convId}`,
           createdAt: '',
+          unread: false,
         })
       }
 
@@ -162,15 +182,61 @@ export default function NotificationsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  async function markAllRead() {
+    if (!userId) return
+    setMarking(true)
+    const now = new Date().toISOString()
+    const { error: upsertError } = await supabase
+      .from('user_notification_state')
+      .upsert({ user_id: userId, last_read_at: now, updated_at: now }, { onConflict: 'user_id' })
+    setMarking(false)
+
+    if (upsertError) {
+      setError(upsertError.message)
+      return
+    }
+    setItems((prev) => prev.map((item) => ({ ...item, unread: false })))
+  }
+
+  const unreadCount = items.filter((item) => item.unread).length
+
   if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
   if (error) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>알림</h1>
-      <p style={{ marginTop: 8, color: '#57534e' }}>
-        받은 관심, 피드 반응, 새 대화를 확인하세요.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700 }}>알림</h1>
+          <p style={{ marginTop: 8, color: '#57534e' }}>
+            받은 관심, 피드 반응, 새 대화를 확인하세요.
+            {unreadCount > 0 && (
+              <span style={{ marginLeft: 8, color: '#b91c1c', fontWeight: 700 }}>
+                새 알림 {unreadCount}개
+              </span>
+            )}
+          </p>
+        </div>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            onClick={() => void markAllRead()}
+            disabled={marking}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 10,
+              border: '1px solid #d6d3d1',
+              background: '#fff',
+              color: '#1c1917',
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: marking ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {marking ? '처리 중...' : '모두 읽음 표시'}
+          </button>
+        )}
+      </div>
       <AppNav />
 
       <section style={{ marginTop: 20, display: 'grid', gap: 12 }}>
@@ -184,8 +250,8 @@ export default function NotificationsPage() {
               gap: 14,
               padding: 18,
               borderRadius: 18,
-              border: '1px solid #e7e5e4',
-              background: '#fff',
+              border: item.unread ? '2px solid #b91c1c' : '1px solid #e7e5e4',
+              background: item.unread ? '#fff1f2' : '#fff',
               textDecoration: 'none',
               color: '#1c1917',
             }}
@@ -195,6 +261,18 @@ export default function NotificationsPage() {
               <span style={{ fontWeight: 700 }}>{item.actorNickname}</span>
               <span style={{ color: '#57534e' }}>{item.detail}</span>
             </div>
+            {item.unread && (
+              <span
+                aria-label="읽지 않음"
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  background: '#b91c1c',
+                  flexShrink: 0,
+                }}
+              />
+            )}
             {item.createdAt && (
               <div style={{ color: '#78716c', fontSize: 13, whiteSpace: 'nowrap' }}>
                 {formatDate(item.createdAt)}

@@ -28,6 +28,7 @@ export default function RelationshipsPage() {
   const [friendProfiles, setFriendProfiles] = useState<ProfileRow[]>([])
   const [conversationSummaries, setConversationSummaries] = useState<ConversationSummary[]>([])
   const [makingFriendId, setMakingFriendId] = useState<string | null>(null)
+  const [cancellingInterestId, setCancellingInterestId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -245,6 +246,29 @@ export default function RelationshipsPage() {
     setMakingFriendId(null)
   }
 
+  async function cancelInterest(targetUserId: string) {
+    if (!currentUserId) return
+    if (typeof window !== 'undefined' && !window.confirm('이 관심을 취소하시겠어요?')) return
+
+    setCancellingInterestId(targetUserId)
+    setError(null)
+
+    const { error: deleteError } = await supabase
+      .from('relationship_requests')
+      .delete()
+      .eq('requester_user_id', currentUserId)
+      .eq('target_user_id', targetUserId)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      setCancellingInterestId(null)
+      return
+    }
+
+    setSentInterestProfiles((prev) => prev.filter((p) => p.user_id !== targetUserId))
+    setCancellingInterestId(null)
+  }
+
   const totalConnections = useMemo(
     () =>
       sentInterestProfiles.length +
@@ -287,13 +311,68 @@ export default function RelationshipsPage() {
       </section>
 
       <div style={{ marginTop: 20, display: 'grid', gap: 18 }}>
-        <RelationshipSection
-          title="내가 보낸 관심"
-          emptyText="아직 보낸 관심이 없어요. 사람 목록에서 먼저 관심을 보내보세요."
-          items={sentInterestProfiles}
-          actionLabel="프로필 보기"
-          actionHref={(profile) => `/people/${profile.user_id}`}
-        />
+        <section
+          style={{
+            padding: 20,
+            borderRadius: 18,
+            border: '1px solid #e7e5e4',
+            background: '#fff',
+          }}
+        >
+          <h2 style={{ fontSize: 22, fontWeight: 700 }}>내가 보낸 관심</h2>
+          <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+            {sentInterestProfiles.map((profile) => (
+              <div
+                key={profile.user_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: 14,
+                  borderRadius: 14,
+                  background: '#fafaf9',
+                }}
+              >
+                <ProfileAvatar avatarUrl={profile.avatar_url} nickname={profile.nickname} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700 }}>{profile.nickname}</div>
+                  <div style={{ marginTop: 4, color: '#57534e' }}>
+                    {[profile.region, profile.relationship_purpose].filter(Boolean).join(' · ') || '프로필 정보 준비 중'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Link
+                    href={`/people/${profile.user_id}`}
+                    style={{ textDecoration: 'underline', color: '#57534e', fontWeight: 600 }}
+                  >
+                    프로필 보기
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void cancelInterest(profile.user_id)}
+                    disabled={cancellingInterestId === profile.user_id}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 999,
+                      border: '1px solid #d6d3d1',
+                      background: '#fff',
+                      color: '#1c1917',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {cancellingInterestId === profile.user_id ? '취소 중...' : '관심 취소'}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {sentInterestProfiles.length === 0 && (
+              <div style={{ color: '#57534e' }}>
+                아직 보낸 관심이 없어요. 사람 목록에서 먼저 관심을 보내보세요.
+              </div>
+            )}
+          </div>
+        </section>
 
         <section
           style={{

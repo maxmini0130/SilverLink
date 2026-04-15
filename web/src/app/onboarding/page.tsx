@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
@@ -10,6 +10,14 @@ const HOBBIES = ['산책', '등산', '여행', '사진', '요리', '음악', '�
 const RELATIONSHIP_PURPOSES = ['말벗', '친구', '동네 산책', '취미 동행', '모임 찾기'] as const
 
 export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>로딩 중...</div>}>
+      <OnboardingPageInner />
+    </Suspense>
+  )
+}
+
+function OnboardingPageInner() {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()

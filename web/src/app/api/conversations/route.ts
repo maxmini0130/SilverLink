@@ -93,26 +93,28 @@ export async function POST(request: Request) {
     }
   }
 
-  const { data: conversation, error: conversationError } = await supabase
-    .from('conversations')
-    .insert({ kind: 'direct' })
-    .select('id')
-    .single()
+  console.log('[api/conversations] creating as', user.id, '→', targetUserId)
 
-  if (conversationError || !conversation) {
-    return NextResponse.json({ error: conversationError?.message ?? '대화 생성에 실패했습니다.' }, { status: 500 })
+  const { data: conversationId, error: rpcError } = await supabase.rpc('start_direct_conversation', {
+    target: targetUserId,
+  })
+
+  if (rpcError || !conversationId) {
+    console.error('[api/conversations] rpc failed', rpcError)
+    return NextResponse.json(
+      {
+        error: rpcError?.message ?? '대화 생성에 실패했습니다.',
+        code: rpcError?.code,
+        details: rpcError?.details,
+        hint: rpcError?.hint,
+      },
+      { status: 500 },
+    )
   }
 
-  const { error: membersError } = await supabase.from('conversation_members').insert([
-    { conversation_id: conversation.id, user_id: user.id },
-    { conversation_id: conversation.id, user_id: targetUserId },
-  ])
+  console.log('[api/conversations] created', conversationId)
 
-  if (membersError) {
-    return NextResponse.json({ error: membersError.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ conversationId: conversation.id })
+  return NextResponse.json({ conversationId })
 }
 
 function orderedIds(a: string, b: string) {

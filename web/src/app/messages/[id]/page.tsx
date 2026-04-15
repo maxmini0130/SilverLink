@@ -131,7 +131,8 @@ export default function MessageDetailPage() {
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            setMessages((prev) => [...prev, payload.new as MessageRow])
+            const next = payload.new as MessageRow
+            setMessages((prev) => (prev.some((row) => row.id === next.id) ? prev : [...prev, next]))
           }
         )
         .subscribe()
@@ -162,20 +163,31 @@ export default function MessageDetailPage() {
     setError(null)
     setText('')
 
-    const { error: insertError } = await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      user_id: currentUserId,
-      message,
-    })
+    const { data: inserted, error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        user_id: currentUserId,
+        message,
+      })
+      .select('id,user_id,message,created_at')
+      .single()
 
-    if (insertError) {
-      setError(insertError.message)
-    } else {
-      await supabase
-        .from('conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', conversationId)
+    if (insertError || !inserted) {
+      setError(insertError?.message ?? '메시지 전송에 실패했습니다.')
+      setText(message)
+      return
     }
+
+    // 즉시 반영 (Realtime 이벤트가 없거나 느려도 보임).
+    // Realtime 구독이 같은 id를 다시 보내면 dedupe로 무시됨.
+    const row = inserted as MessageRow
+    setMessages((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, row]))
+
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId)
   }
 
   if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
