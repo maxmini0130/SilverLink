@@ -118,7 +118,10 @@ export default async function PersonDetailPage({
             border: '1px solid #e7e5e4',
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>다음 단계</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>관계 맺기</div>
+          <p style={{ marginTop: 6, color: '#78716c', fontSize: 14 }}>
+            관심을 보내고, 상호 관심이 되면 대화를 시작할 수 있어요.
+          </p>
           <RelationshipActions targetUserId={profile.user_id} />
           <SafetyActions targetUserId={profile.user_id} />
         </div>

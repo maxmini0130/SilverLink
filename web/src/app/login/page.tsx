@@ -45,46 +45,51 @@ function LoginPageInner() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 420, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>SilverLink 로그인</h1>
+    <div style={{ padding: 32, maxWidth: 440, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 28, fontWeight: 700 }}>SilverLink 로그인</h1>
+      <p style={{ marginTop: 8, color: '#57534e', fontSize: 16 }}>이메일과 비밀번호를 입력해 주세요.</p>
 
       <form onSubmit={onSubmit}>
-        <label style={{ display: 'block', marginTop: 16 }}>이메일</label>
+        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>이메일</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="example@email.com"
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
         />
 
-        <label style={{ display: 'block', marginTop: 16 }}>비밀번호</label>
+        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>비밀번호</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
         />
 
         <button
           type="submit"
           disabled={loading}
-          style={{ marginTop: 12, padding: 12, width: '100%' }}
+          style={{ marginTop: 24, padding: 16, width: '100%', fontSize: 18, fontWeight: 700, borderRadius: 12, background: '#1c1917', color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
         >
           {loading ? '로그인 중...' : '로그인'}
         </button>
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+        {error && <p style={{ marginTop: 12, color: 'crimson', fontSize: 15 }}>{error}</p>}
       </form>
 
-      <p style={{ marginTop: 16 }}>
-        계정이 없으신가요? <Link href="/signup">회원가입</Link>
-      </p>
-      <p>
-        비밀번호를 잊으셨나요? <Link href="/forgot">비밀번호 찾기</Link>
-      </p>
+      <div style={{ marginTop: 24, display: 'grid', gap: 12 }}>
+        <p style={{ fontSize: 16 }}>
+          계정이 없으신가요?{' '}
+          <Link href="/signup" style={{ fontWeight: 700, color: '#1c1917' }}>회원가입</Link>
+        </p>
+        <p style={{ fontSize: 16 }}>
+          비밀번호를 잊으셨나요?{' '}
+          <Link href="/forgot" style={{ fontWeight: 700, color: '#1c1917' }}>비밀번호 찾기</Link>
+        </p>
+      </div>
     </div>
   )
 }

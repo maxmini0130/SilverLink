@@ -95,88 +95,88 @@ export default async function HomePage() {
       <p style={{ marginTop: 8, color: '#57534e' }}>안녕하세요, {profile.nickname}님</p>
       <AppNav />
 
-      <section
-        style={{
-          marginTop: 20,
-          padding: 20,
-          borderRadius: 20,
-          background: '#f5f5f4',
-          border: '1px solid #e7e5e4',
-        }}
-      >
-        <div style={{ fontSize: 20, fontWeight: 700 }}>오늘의 안내</div>
-        <p style={{ marginTop: 10, color: '#44403c' }}>
-          {profile.region ? `${profile.region} 근처에서` : '내 주변에서'} 새로운 사람과 모임을 찾아보세요.
-          {profile.relationship_purpose ? ` 지금 설정한 관계 목적은 "${profile.relationship_purpose}"입니다.` : ''}
-        </p>
-      </section>
-
-      <section style={{ marginTop: 20, display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-        <div style={{ padding: 18, border: '1px solid #e7e5e4', borderRadius: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>오늘의 추천 사람</div>
-          <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
-            {peopleCards.map((person) => (
-              <Link
-                key={person.user_id}
-                href={`/people/${person.user_id}`}
-                style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{ fontWeight: 600 }}>{person.nickname}</div>
-                <div style={{ color: '#57534e', marginTop: 4 }}>
-                  {[person.region, person.relationship_purpose].filter(Boolean).join(' · ') || '프로필 준비 중'}
-                </div>
-              </Link>
-            ))}
-            {peopleCards.length === 0 && (
-              <div style={{ color: '#57534e' }}>아직 추천할 사람이 없어요.</div>
-            )}
+      {/* 1순위: 추천 사람 */}
+      <section style={{ marginTop: 20, padding: 20, borderRadius: 20, border: '1px solid #e7e5e4', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>지금 만나볼 만한 사람</div>
+            <div style={{ marginTop: 4, color: '#57534e', fontSize: 14 }}>
+              {profile.region ? `${profile.region} 근처` : '내 주변'}{profile.relationship_purpose ? ` · ${profile.relationship_purpose} 목적` : ''}
+            </div>
           </div>
+          <Link href="/people" style={{ textDecoration: 'underline', color: '#57534e', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            더 보기
+          </Link>
         </div>
-
-        <div style={{ padding: 18, border: '1px solid #e7e5e4', borderRadius: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>추천 모임</div>
-          <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
-            {groupCards.map((group) => (
-              <Link
-                key={group.id}
-                href={`/groups/${group.id}`}
-                style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
-              >
-                <div style={{ fontWeight: 600 }}>{group.title}</div>
-                <div style={{ color: '#57534e', marginTop: 4 }}>
-                  {[group.category, group.region].filter(Boolean).join(' · ')}
-                </div>
-              </Link>
-            ))}
-            {groupCards.length === 0 && (
-              <div style={{ color: '#57534e' }}>아직 추천할 모임이 없어요.</div>
-            )}
-          </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+          {peopleCards.map((person) => (
+            <Link
+              key={person.user_id}
+              href={`/people/${person.user_id}`}
+              style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 16 }}>{person.nickname}</div>
+              <div style={{ color: '#57534e', marginTop: 4, fontSize: 14 }}>
+                {[person.region, person.relationship_purpose].filter(Boolean).join(' · ') || '프로필 준비 중'}
+              </div>
+            </Link>
+          ))}
+          {peopleCards.length === 0 && (
+            <div style={{ color: '#57534e' }}>아직 추천할 사람이 없어요.</div>
+          )}
         </div>
       </section>
 
-      <section style={{ marginTop: 20, padding: 18, border: '1px solid #e7e5e4', borderRadius: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>새 생활 피드</div>
-          <a href="/posts" style={{ textDecoration: 'underline', color: '#57534e' }}>
-            피드 보러가기
-          </a>
+      {/* 2순위: 최근 피드 */}
+      <section style={{ marginTop: 16, padding: 20, borderRadius: 20, border: '1px solid #e7e5e4', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>최근 올라온 피드</div>
+          <Link href="/posts" style={{ textDecoration: 'underline', color: '#57534e', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            더 보기
+          </Link>
         </div>
-        <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
           {postCards.map((post) => (
             <Link
               key={post.id}
               href={`/posts/${post.id}`}
-              style={{ display: 'block', paddingBottom: 10, borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+              style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
             >
-              <div style={{ fontWeight: 600 }}>{recentProfileMap.get(post.user_id) ?? '사용자'}</div>
-              <div style={{ marginTop: 4, color: '#57534e' }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>{recentProfileMap.get(post.user_id) ?? '사용자'}</div>
+              <div style={{ marginTop: 4, color: '#57534e', fontSize: 14 }}>
                 {post.content?.slice(0, 80) || (post.image_url ? '사진을 올렸어요.' : '새 피드를 작성했어요.')}
               </div>
             </Link>
           ))}
           {postCards.length === 0 && (
             <div style={{ color: '#57534e' }}>아직 올라온 피드가 없어요.</div>
+          )}
+        </div>
+      </section>
+
+      {/* 3순위: 추천 모임 */}
+      <section style={{ marginTop: 16, padding: 20, borderRadius: 20, border: '1px solid #e7e5e4', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>함께할 모임</div>
+          <Link href="/groups" style={{ textDecoration: 'underline', color: '#57534e', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            더 보기
+          </Link>
+        </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+          {groupCards.map((group) => (
+            <Link
+              key={group.id}
+              href={`/groups/${group.id}`}
+              style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid #f5f5f4', textDecoration: 'none', color: 'inherit' }}
+            >
+              <div style={{ fontWeight: 600, fontSize: 16 }}>{group.title}</div>
+              <div style={{ color: '#57534e', marginTop: 4, fontSize: 14 }}>
+                {[group.category, group.region].filter(Boolean).join(' · ')}
+              </div>
+            </Link>
+          ))}
+          {groupCards.length === 0 && (
+            <div style={{ color: '#57534e' }}>아직 추천할 모임이 없어요.</div>
           )}
         </div>
       </section>

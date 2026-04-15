@@ -41,43 +41,45 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 420, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>SilverLink 회원가입</h1>
+    <div style={{ padding: 32, maxWidth: 440, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 28, fontWeight: 700 }}>SilverLink 회원가입</h1>
+      <p style={{ marginTop: 8, color: '#57534e', fontSize: 16 }}>이메일 인증 후 바로 시작할 수 있어요.</p>
 
       <form onSubmit={onSubmit}>
-        <label style={{ display: 'block', marginTop: 16 }}>이메일</label>
+        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>이메일</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="example@email.com"
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
         />
 
-        <label style={{ display: 'block', marginTop: 16 }}>비밀번호</label>
+        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>비밀번호</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="6자 이상"
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
         />
 
         <button
           type="submit"
           disabled={loading}
-          style={{ marginTop: 12, padding: 12, width: '100%' }}
+          style={{ marginTop: 24, padding: 16, width: '100%', fontSize: 18, fontWeight: 700, borderRadius: 12, background: '#1c1917', color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
         >
           {loading ? '처리 중...' : '회원가입'}
         </button>
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+        {error && <p style={{ marginTop: 12, color: 'crimson', fontSize: 15 }}>{error}</p>}
       </form>
 
-      <p style={{ marginTop: 16 }}>
-        이미 계정이 있으신가요? <Link href="/login">로그인</Link>
+      <p style={{ marginTop: 24, fontSize: 16 }}>
+        이미 계정이 있으신가요?{' '}
+        <Link href="/login" style={{ fontWeight: 700, color: '#1c1917' }}>로그인</Link>
       </p>
     </div>
   )

@@ -69,9 +69,10 @@ export default function GroupsPage() {
             href={`/groups/${g.id}`}
             style={{
               display: 'block',
-              padding: 16,
-              border: '1px solid #333',
-              borderRadius: 12,
+              padding: 18,
+              border: '1px solid #e7e5e4',
+              borderRadius: 18,
+              background: '#fff',
               textDecoration: 'none',
               color: 'inherit',
             }}

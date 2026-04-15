@@ -114,12 +114,12 @@ export function RelationshipActions({
   const canChat = state.isFriend || isMutualInterest || state.sharedGroupCount > 0
   const statusLabel = useMemo(() => {
     if (!state.currentUserId || state.currentUserId === targetUserId) return null
-    if (state.isFriend) return '1촌'
-    if (isMutualInterest) return '상호 관심'
-    if (state.sentInterest) return '내가 관심 보냄'
-    if (state.receivedInterest) return '상대가 나에게 관심 보냄'
-    if (state.sharedGroupCount > 0) return `같은 모임 ${state.sharedGroupCount}개`
-    return '관계 없음'
+    if (state.isFriend) return '1촌 사이'
+    if (isMutualInterest) return '서로 관심을 보낸 사이'
+    if (state.sentInterest) return '내가 관심을 보냈어요'
+    if (state.receivedInterest) return '나에게 관심을 보낸 분이에요'
+    if (state.sharedGroupCount > 0) return `같은 모임에 함께 참여 중`
+    return null
   }, [
     isMutualInterest,
     state.currentUserId,
@@ -246,9 +246,9 @@ export function RelationshipActions({
           </button>
         )}
       </div>
-      {state.sharedGroupCount > 0 && !state.isFriend && (
+      {!canChat && !state.isFriend && (
         <p style={{ marginTop: 8, color: '#78716c', fontSize: compact ? 12 : 13 }}>
-          같은 모임에 함께 참여 중이라 1촌으로 연결할 수 있어요.
+          서로 관심을 보내거나, 같은 모임에 참여하면 대화를 시작할 수 있어요.
         </p>
       )}
       {error && <p style={{ marginTop: 8, color: 'crimson', fontSize: compact ? 12 : 13 }}>{error}</p>}

@@ -191,9 +191,12 @@ export default function GroupChatPage() {
                 }}
               >
                 {!mine && (
-                  <div style={{ fontSize: 12, color: '#78716c', marginBottom: 4, paddingLeft: 4 }}>
+                  <Link
+                    href={`/people/${m.user_id}`}
+                    style={{ fontSize: 12, color: '#78716c', marginBottom: 4, paddingLeft: 4, display: 'block', textDecoration: 'none' }}
+                  >
                     {nickname}
-                  </div>
+                  </Link>
                 )}
                 <div
                   style={{
