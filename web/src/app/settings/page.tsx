@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
+import { Globe, Shield, HeadphonesIcon, Mail, KeyRound, ChevronRight, X } from 'lucide-react'
 
 type Visibility = 'private' | 'friends' | 'interested' | 'same_group' | 'members'
 
@@ -13,12 +14,12 @@ type BlockedProfile = {
   region: string | null
 }
 
-const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string }> = [
-  { value: 'private', label: '나만 보기' },
-  { value: 'friends', label: '1촌만 보기' },
-  { value: 'interested', label: '관심 있는 사람만 보기' },
-  { value: 'same_group', label: '같은 모임 사람만 보기' },
-  { value: 'members', label: '전체 인증회원 보기' },
+const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; desc: string }> = [
+  { value: 'private', label: '나만 보기', desc: '나 혼자만 볼 수 있어요' },
+  { value: 'friends', label: '1촌만 보기', desc: '1촌 관계인 분들에게 공개' },
+  { value: 'interested', label: '관심 있는 사람만', desc: '상호 관심을 보낸 분들에게 공개' },
+  { value: 'same_group', label: '같은 모임', desc: '같은 모임에 속한 분들에게 공개' },
+  { value: 'members', label: '전체 인증회원', desc: '가입한 모든 회원에게 공개' },
 ]
 
 export default function SettingsPage() {
@@ -34,25 +35,13 @@ export default function SettingsPage() {
     ;(async () => {
       setLoading(true)
       setError(null)
-
       const { data: auth } = await supabase.auth.getUser()
       const user = auth.user
-      if (!user) {
-        setError('로그인이 필요합니다.')
-        setLoading(false)
-        return
-      }
+      if (!user) { setError('로그인이 필요합니다.'); setLoading(false); return }
 
       const [profileRes, blocksRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('default_post_visibility')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('blocks')
-          .select('blocked_user_id')
-          .eq('blocker_user_id', user.id),
+        supabase.from('profiles').select('default_post_visibility').eq('user_id', user.id).maybeSingle(),
+        supabase.from('blocks').select('blocked_user_id').eq('blocker_user_id', user.id),
       ])
 
       if (profileRes.error || blocksRes.error) {
@@ -61,26 +50,14 @@ export default function SettingsPage() {
         return
       }
 
-      setDefaultVisibility(
-        ((profileRes.data?.default_post_visibility as Visibility | null) ?? 'members')
-      )
+      setDefaultVisibility(((profileRes.data?.default_post_visibility as Visibility | null) ?? 'members'))
 
       const blockedIds = (blocksRes.data ?? []).map((row) => row.blocked_user_id as string)
       if (blockedIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id,nickname,region')
-          .in('user_id', blockedIds)
-
-        if (profilesError) {
-          setError(profilesError.message)
-          setLoading(false)
-          return
-        }
-
+        const { data: profiles, error: profilesError } = await supabase.from('profiles').select('user_id,nickname,region').in('user_id', blockedIds)
+        if (profilesError) { setError(profilesError.message); setLoading(false); return }
         setBlockedProfiles((profiles ?? []) as BlockedProfile[])
       }
-
       setLoading(false)
     })()
   }, [supabase])
@@ -89,26 +66,12 @@ export default function SettingsPage() {
     setSaving(true)
     setError(null)
     setMessage(null)
-
     const { data: auth } = await supabase.auth.getUser()
     const user = auth.user
-    if (!user) {
-      setError('로그인이 필요합니다.')
-      setSaving(false)
-      return
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ default_post_visibility: defaultVisibility })
-      .eq('user_id', user.id)
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setMessage('기본 공개범위를 저장했습니다.')
-    }
-
+    if (!user) { setError('로그인이 필요합니다.'); setSaving(false); return }
+    const { error } = await supabase.from('profiles').update({ default_post_visibility: defaultVisibility }).eq('user_id', user.id)
+    if (error) setError(error.message)
+    else setMessage('기본 공개범위를 저장했습니다.')
     setSaving(false)
   }
 
@@ -120,119 +83,138 @@ export default function SettingsPage() {
       body: JSON.stringify({ targetUserId, action: 'unblock' }),
     })
     const payload = (await response.json().catch(() => null)) as { error?: string } | null
-
-    if (!response.ok) {
-      setError(payload?.error ?? '차단 해제에 실패했습니다.')
-      return
-    }
-
-    setBlockedProfiles((prev) => prev.filter((profile) => profile.user_id !== targetUserId))
+    if (!response.ok) { setError(payload?.error ?? '차단 해제에 실패했습니다.'); return }
+    setBlockedProfiles((prev) => prev.filter((p) => p.user_id !== targetUserId))
   }
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
-  if (error && !message) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
+  if (error && !message) return <div className="p-10 text-center text-red-600">{error}</div>
 
   return (
-    <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>설정 / 고객센터</h1>
-      <p style={{ marginTop: 8, color: '#57534e' }}>
-        공개범위 기본값과 차단 목록을 관리하고, 문의 안내를 확인하세요.
-      </p>
-      <AppNav />
+    <div className="min-h-screen bg-background pb-32">
+      <main className="max-w-2xl mx-auto px-5 pt-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">설정</h1>
+          <p className="mt-2 text-muted-foreground font-medium">공개범위 기본값과 차단 목록을 관리하세요.</p>
+        </header>
 
-      <section style={cardStyle}>
-        <h2 style={titleStyle}>공개범위 기본값</h2>
-        <p style={descStyle}>새 피드를 작성할 때 기본으로 선택될 공개범위입니다.</p>
-        <select
-          value={defaultVisibility}
-          onChange={(e) => setDefaultVisibility(e.target.value as Visibility)}
-          style={{ width: '100%', padding: 12, fontSize: 16, marginTop: 12 }}
-        >
-          {VISIBILITY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <button onClick={saveDefaultVisibility} disabled={saving} style={{ marginTop: 12, padding: '12px 16px' }}>
-          {saving ? '저장 중...' : '기본값 저장'}
-        </button>
-      </section>
+        <AppNav />
 
-      <section style={cardStyle}>
-        <h2 style={titleStyle}>차단 목록</h2>
-        <p style={descStyle}>차단한 사용자는 사람/피드/대화 화면에서 숨겨집니다.</p>
-        <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
-          {blockedProfiles.map((profile) => (
-            <div key={profile.user_id} style={listRowStyle}>
-              <div>
-                <div style={{ fontWeight: 700 }}>{profile.nickname}</div>
-                <div style={{ color: '#57534e', marginTop: 4 }}>{profile.region ?? '지역 정보 없음'}</div>
-              </div>
-              <button onClick={() => unblock(profile.user_id)} style={{ padding: '10px 14px' }}>
-                차단 해제
-              </button>
+        <div className="mt-6 space-y-5">
+          {/* 공개범위 기본값 */}
+          <section className="bg-white rounded-4xl border border-border/50 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Globe size={20} className="text-primary" />
+              <h2 className="text-xl font-bold text-foreground">공개범위 기본값</h2>
             </div>
-          ))}
-          {blockedProfiles.length === 0 && <div style={{ color: '#57534e' }}>차단한 사용자가 없어요.</div>}
+            <p className="text-sm text-muted-foreground mb-4">새 피드를 작성할 때 기본으로 선택될 공개범위입니다.</p>
+
+            <div className="space-y-2">
+              {VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setDefaultVisibility(option.value)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${
+                    defaultVisibility === option.value
+                      ? 'bg-primary/5 border-primary/30'
+                      : 'bg-muted/20 border-border/40 hover:border-primary/20'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                    defaultVisibility === option.value ? 'border-primary' : 'border-border'
+                  }`}>
+                    {defaultVisibility === option.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <div>
+                    <div className={`font-semibold ${defaultVisibility === option.value ? 'text-primary' : 'text-foreground'}`}>{option.label}</div>
+                    <div className="text-xs text-muted-foreground">{option.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={saveDefaultVisibility}
+              disabled={saving}
+              className="mt-4 w-full py-3 rounded-2xl bg-primary text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {saving ? '저장 중...' : '기본값 저장'}
+            </button>
+
+            {message && <p className="mt-3 text-sm text-green-700 font-semibold">{message}</p>}
+            {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+          </section>
+
+          {/* 차단 목록 */}
+          <section className="bg-white rounded-4xl border border-border/50 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Shield size={20} className="text-primary" />
+              <h2 className="text-xl font-bold text-foreground">차단 목록</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">차단한 사용자는 사람/피드/대화 화면에서 숨겨집니다.</p>
+
+            <div className="space-y-2">
+              {blockedProfiles.map((profile) => (
+                <div key={profile.user_id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-muted/30">
+                  <div>
+                    <div className="font-bold text-foreground">{profile.nickname}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{profile.region ?? '지역 정보 없음'}</div>
+                  </div>
+                  <button
+                    onClick={() => unblock(profile.user_id)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-border/60 bg-white text-sm font-semibold hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                  >
+                    <X size={14} />
+                    차단 해제
+                  </button>
+                </div>
+              ))}
+              {blockedProfiles.length === 0 && (
+                <p className="text-sm text-muted-foreground py-2">차단한 사용자가 없어요.</p>
+              )}
+            </div>
+          </section>
+
+          {/* 고객센터 */}
+          <section className="bg-white rounded-4xl border border-border/50 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <HeadphonesIcon size={20} className="text-primary" />
+              <h2 className="text-xl font-bold text-foreground">고객센터</h2>
+            </div>
+
+            <div className="space-y-3">
+              <a
+                href="mailto:support@silverlink.local"
+                className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-muted/30 hover:bg-muted/60 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <Mail size={18} className="text-primary shrink-0" />
+                  <div>
+                    <div className="font-bold text-foreground group-hover:text-primary transition-colors">문의 메일</div>
+                    <div className="text-xs text-muted-foreground">support@silverlink.local</div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground/50" />
+              </a>
+
+              <Link
+                href="/forgot"
+                className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-muted/30 hover:bg-muted/60 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <KeyRound size={18} className="text-primary shrink-0" />
+                  <div>
+                    <div className="font-bold text-foreground group-hover:text-primary transition-colors">비밀번호 재설정</div>
+                    <div className="text-xs text-muted-foreground">로그인 문제가 있을 때 이용해 주세요</div>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground/50" />
+              </Link>
+            </div>
+          </section>
         </div>
-      </section>
-
-      <section style={cardStyle}>
-        <h2 style={titleStyle}>고객센터</h2>
-        <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
-          <div style={listRowStyle}>
-            <div>
-              <div style={{ fontWeight: 700 }}>문의 메일</div>
-              <div style={{ color: '#57534e', marginTop: 4 }}>support@silverlink.local</div>
-            </div>
-            <a href="mailto:support@silverlink.local" style={{ textDecoration: 'underline', color: '#57534e' }}>
-              메일 보내기
-            </a>
-          </div>
-          <div style={listRowStyle}>
-            <div>
-              <div style={{ fontWeight: 700 }}>비밀번호/로그인 문제</div>
-              <div style={{ color: '#57534e', marginTop: 4 }}>로그인 화면의 비밀번호 찾기에서 재설정을 진행할 수 있어요.</div>
-            </div>
-            <Link href="/forgot" style={{ textDecoration: 'underline', color: '#57534e' }}>
-              재설정
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {(error || message) && (
-        <p style={{ marginTop: 12, color: error ? 'crimson' : '#166534' }}>{error ?? message}</p>
-      )}
+      </main>
     </div>
   )
 }
-
-const cardStyle = {
-  marginTop: 20,
-  padding: 20,
-  borderRadius: 20,
-  border: '1px solid #e7e5e4',
-  background: '#fff',
-} as const
-
-const titleStyle = {
-  fontSize: 22,
-  fontWeight: 700,
-} as const
-
-const descStyle = {
-  marginTop: 6,
-  color: '#57534e',
-} as const
-
-const listRowStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 12,
-  alignItems: 'center',
-  padding: 14,
-  borderRadius: 14,
-  background: '#fafaf9',
-} as const

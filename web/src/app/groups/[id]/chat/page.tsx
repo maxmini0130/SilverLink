@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ChevronLeft, Send } from 'lucide-react'
 
 type Msg = {
   id: number
@@ -28,16 +29,9 @@ export default function GroupChatPage() {
   async function fetchNicknames(userIds: string[], current: Map<string, string>) {
     const missing = userIds.filter((id) => !current.has(id))
     if (missing.length === 0) return current
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_id,nickname')
-      .in('user_id', missing)
-
+    const { data } = await supabase.from('profiles').select('user_id,nickname').in('user_id', missing)
     const updated = new Map(current)
-    for (const row of data ?? []) {
-      updated.set(row.user_id, row.nickname ?? row.user_id.slice(0, 8))
-    }
+    for (const row of data ?? []) updated.set(row.user_id, row.nickname ?? row.user_id.slice(0, 8))
     return updated
   }
 
@@ -51,86 +45,39 @@ export default function GroupChatPage() {
 
       const { data: auth } = await supabase.auth.getUser()
       const user = auth.user
-      if (!user) {
-        if (active) {
-          setError('로그인이 필요합니다.')
-          setLoading(false)
-        }
-        return
-      }
-
+      if (!user) { if (active) { setError('로그인이 필요합니다.'); setLoading(false) } return }
       setCurrentUserId(user.id)
 
-      // 멤버 여부 확인
-      const { data: membership } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', groupId)
-        .eq('user_id', user.id)
-        .maybeSingle()
+      const { data: membership } = await supabase.from('group_members').select('user_id').eq('group_id', groupId).eq('user_id', user.id).maybeSingle()
+      if (!membership) { if (active) { setError('이 모임의 멤버가 아닙니다. 먼저 모임에 참여해 주세요.'); setLoading(false) } return }
 
-      if (!membership) {
-        if (active) {
-          setError('이 모임의 멤버가 아닙니다. 먼저 모임에 참여해 주세요.')
-          setLoading(false)
-        }
-        return
-      }
-
-      const { data, error: msgError } = await supabase
-        .from('group_messages')
-        .select('id,user_id,message,created_at')
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: true })
-
-      if (msgError) {
-        if (active) {
-          setError(msgError.message)
-          setLoading(false)
-        }
-        return
-      }
+      const { data, error: msgError } = await supabase.from('group_messages').select('id,user_id,message,created_at').eq('group_id', groupId).order('created_at', { ascending: true })
+      if (msgError) { if (active) { setError(msgError.message); setLoading(false) } return }
 
       const msgs = (data ?? []) as Msg[]
       const uniqueIds = Array.from(new Set(msgs.map((m) => m.user_id)))
       const nicknameMap = await fetchNicknames(uniqueIds, new Map())
-
       if (!active) return
 
       setMessages(msgs)
       setNicknames(nicknameMap)
       setLoading(false)
 
-      channel = supabase
-        .channel(`group_messages:${groupId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'group_messages',
-            filter: `group_id=eq.${groupId}`,
-          },
+      channel = supabase.channel(`group_messages:${groupId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${groupId}` },
           async (payload) => {
             const newMsg = payload.new as Msg
             setMessages((prev) => [...prev, newMsg])
             setNicknames((prev) => {
               if (prev.has(newMsg.user_id)) return prev
-              // 백그라운드에서 닉네임 가져오기
-              fetchNicknames([newMsg.user_id], prev).then((updated) => {
-                setNicknames(updated)
-              })
+              fetchNicknames([newMsg.user_id], prev).then((updated) => setNicknames(updated))
               return prev
             })
           }
-        )
-        .subscribe()
+        ).subscribe()
     })()
 
-    return () => {
-      active = false
-      if (channel) supabase.removeChannel(channel)
-    }
+    return () => { active = false; if (channel) supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId])
 
@@ -143,100 +90,94 @@ export default function GroupChatPage() {
     if (!msg || !currentUserId) return
     setText('')
     setError(null)
-
-    const { error } = await supabase.from('group_messages').insert({
-      group_id: groupId,
-      user_id: currentUserId,
-      message: msg,
-    })
-
+    const { error } = await supabase.from('group_messages').insert({ group_id: groupId, user_id: currentUserId, message: msg })
     if (error) setError(error.message)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      void send()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send() }
   }
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
+
   if (error) return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <Link href={`/groups/${groupId}`} style={{ textDecoration: 'underline', color: '#57534e' }}>
-        ← 모임 상세
-      </Link>
-      <p style={{ marginTop: 16, color: 'crimson' }}>{error}</p>
+    <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
+      <div className="bg-white p-8 rounded-4xl shadow-sm border border-border/50 max-w-md w-full text-center">
+        <p className="text-red-500 font-bold mb-6">{error}</p>
+        <Link href={`/groups/${groupId}`} className="inline-flex items-center gap-2 text-primary font-bold hover:underline">
+          <ChevronLeft size={20} />
+          모임 상세로 돌아가기
+        </Link>
+      </div>
     </div>
   )
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <Link href={`/groups/${groupId}`} style={{ textDecoration: 'underline', color: '#57534e' }}>
-        ← 모임 상세
-      </Link>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 12 }}>모임 채팅</h1>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* 상단 헤더 */}
+      <div className="px-5 py-4 flex items-center gap-3 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b border-border/30">
+        <Link href={`/groups/${groupId}`} className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-sm border border-border/50 text-foreground shrink-0">
+          <ChevronLeft size={24} />
+        </Link>
+        <h1 className="font-bold text-lg">모임 채팅</h1>
+      </div>
 
-      <div style={{ marginTop: 16, border: '1px solid #e7e5e4', borderRadius: 18, background: '#fff', padding: 16 }}>
-        <div style={{ maxHeight: 460, overflowY: 'auto', display: 'grid', gap: 10 }}>
-          {messages.map((m) => {
-            const mine = m.user_id === currentUserId
-            const nickname = nicknames.get(m.user_id) ?? m.user_id.slice(0, 8)
-            return (
-              <div
-                key={m.id}
-                style={{
-                  justifySelf: mine ? 'end' : 'start',
-                  maxWidth: '78%',
-                }}
-              >
-                {!mine && (
-                  <Link
-                    href={`/people/${m.user_id}`}
-                    style={{ fontSize: 12, color: '#78716c', marginBottom: 4, paddingLeft: 4, display: 'block', textDecoration: 'none' }}
-                  >
-                    {nickname}
-                  </Link>
-                )}
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 16,
-                    background: mine ? '#1c1917' : '#f5f5f4',
-                    color: mine ? '#fff' : '#1c1917',
-                  }}
+      {/* 메시지 목록 */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 max-w-2xl mx-auto w-full pb-24">
+        {messages.map((m) => {
+          const mine = m.user_id === currentUserId
+          const nickname = nicknames.get(m.user_id) ?? m.user_id.slice(0, 8)
+          return (
+            <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+              {!mine && (
+                <Link
+                  href={`/people/${m.user_id}`}
+                  className="text-xs text-muted-foreground mb-1 pl-1 hover:text-primary transition-colors font-semibold"
                 >
-                  <div style={{ fontSize: 15 }}>{m.message}</div>
-                  <div style={{ marginTop: 4, fontSize: 11, opacity: 0.6 }}>
-                    {formatTime(m.created_at)}
-                  </div>
-                </div>
+                  {nickname}
+                </Link>
+              )}
+              <div
+                className={`max-w-[78%] px-4 py-2.5 rounded-2xl ${
+                  mine
+                    ? 'bg-primary text-white rounded-br-sm'
+                    : 'bg-white border border-border/50 text-foreground rounded-bl-sm'
+                }`}
+              >
+                <p className="text-[15px] leading-relaxed">{m.message}</p>
+                <p className={`text-[11px] mt-1 ${mine ? 'text-white/60' : 'text-muted-foreground'}`}>
+                  {formatTime(m.created_at)}
+                </p>
               </div>
-            )
-          })}
-          {messages.length === 0 && (
-            <div style={{ color: '#57534e' }}>아직 메시지가 없어요. 첫 인사를 건네보세요.</div>
-          )}
-          <div ref={bottomRef} />
-        </div>
+            </div>
+          )
+        })}
+        {messages.length === 0 && (
+          <div className="text-center py-20 text-muted-foreground font-medium">
+            아직 메시지가 없어요. 첫 인사를 건네보세요.
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+      {/* 입력창 (하단 고정) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md border-t border-border/50 px-4 py-3">
+        <div className="max-w-2xl mx-auto flex gap-2">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="메시지 입력 (Enter로 전송)"
-            style={{ flex: 1, padding: 12, fontSize: 16, borderRadius: 10, border: '1px solid #d6d3d1' }}
+            placeholder="메시지를 입력하세요"
+            className="flex-1 px-4 py-3 rounded-2xl border border-border/60 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <button
             onClick={() => void send()}
-            style={{ padding: '12px 16px', borderRadius: 10, background: '#1c1917', color: '#fff', border: 'none', fontWeight: 600 }}
+            className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center hover:opacity-90 transition-opacity shrink-0"
           >
-            전송
+            <Send size={20} />
           </button>
         </div>
-
-        {error && <p style={{ color: 'crimson', marginTop: 8 }}>{error}</p>}
+        {error && <p className="text-center text-red-500 text-sm mt-2">{error}</p>}
       </div>
     </div>
   )

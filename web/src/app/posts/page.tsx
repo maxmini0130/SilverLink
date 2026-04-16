@@ -5,6 +5,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { SafetyActions } from '@/components/safety-actions'
+import { SilverButton } from '@/components/common/silver-button'
+import { Image as ImageIcon, Plus, X, Globe, Lock, Users, Heart, MessageSquare, Camera, ChevronRight, Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type PostRow = {
   id: number
@@ -31,12 +34,12 @@ type ReactionRow = {
 
 type Visibility = 'private' | 'friends' | 'interested' | 'same_group' | 'members'
 
-const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string }> = [
-  { value: 'private', label: '나만 보기' },
-  { value: 'friends', label: '1촌만 보기' },
-  { value: 'interested', label: '관심 있는 사람만 보기' },
-  { value: 'same_group', label: '같은 모임 사람만 보기' },
-  { value: 'members', label: '전체 인증회원 보기' },
+const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; icon: any }> = [
+  { value: 'private', label: '나만 보기', icon: Lock },
+  { value: 'friends', label: '1촌만', icon: Users },
+  { value: 'interested', label: '관심 있는 사람만', icon: Heart },
+  { value: 'same_group', label: '같은 모임', icon: Users },
+  { value: 'members', label: '전체 공개', icon: Globe },
 ]
 
 const REACTIONS = ['따뜻해요', '응원해요', '반가워요'] as const
@@ -58,127 +61,63 @@ export default function PostsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showInput, setShowInput] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     ;(async () => {
       setLoading(true)
-      setError(null)
-
       const { data: auth } = await supabase.auth.getUser()
       const user = auth.user
       if (!user) {
-        setError('로그인이 필요합니다.')
         setLoading(false)
         return
       }
-
       setCurrentUserId(user.id)
 
-      const [
-        postsRes,
-        profilesRes,
-        reactionsRes,
-        sentInterestRes,
-        receivedInterestRes,
-        friendshipsLowRes,
-        friendshipsHighRes,
-        myMembershipsRes,
-        allMembershipsRes,
-        blocksRes,
-      ] = await Promise.all([
-        supabase
-          .from('posts')
-          .select('id,user_id,image_url,content,visibility,created_at')
-          .order('created_at', { ascending: false }),
+      const [postsRes, profilesRes, reactionsRes, sentInterestRes, receivedInterestRes, friendshipsLowRes, friendshipsHighRes, myMembershipsRes, allMembershipsRes, blocksRes] = await Promise.all([
+        supabase.from('posts').select('id,user_id,image_url,content,visibility,created_at').order('created_at', { ascending: false }),
         supabase.from('profiles').select('user_id,nickname,region,avatar_url,default_post_visibility'),
         supabase.from('post_reactions').select('post_id,user_id,reaction_type'),
-        supabase
-          .from('relationship_requests')
-          .select('target_user_id')
-          .eq('requester_user_id', user.id),
-        supabase
-          .from('relationship_requests')
-          .select('requester_user_id')
-          .eq('target_user_id', user.id),
+        supabase.from('relationship_requests').select('target_user_id').eq('requester_user_id', user.id),
+        supabase.from('relationship_requests').select('requester_user_id').eq('target_user_id', user.id),
         supabase.from('friendships').select('user_high_id').eq('user_low_id', user.id),
         supabase.from('friendships').select('user_low_id').eq('user_high_id', user.id),
         supabase.from('group_members').select('group_id').eq('user_id', user.id),
         supabase.from('group_members').select('group_id,user_id'),
-        supabase
-          .from('blocks')
-          .select('blocker_user_id,blocked_user_id')
-          .or(`blocker_user_id.eq.${user.id},blocked_user_id.eq.${user.id}`),
+        supabase.from('blocks').select('blocker_user_id,blocked_user_id').or(`blocker_user_id.eq.${user.id},blocked_user_id.eq.${user.id}`),
       ])
 
-      const firstError =
-        postsRes.error ||
-        profilesRes.error ||
-        reactionsRes.error ||
-        sentInterestRes.error ||
-        receivedInterestRes.error ||
-        friendshipsLowRes.error ||
-        friendshipsHighRes.error ||
-        myMembershipsRes.error ||
-        allMembershipsRes.error ||
-        blocksRes.error
-
-      if (firstError) {
-        setError(firstError.message)
-        setLoading(false)
-        return
-      }
-
-      const profileMap = new Map(
-        ((profilesRes.data ?? []) as ProfileRow[]).map((profile) => [profile.user_id, profile])
-      )
+      const profileMap = new Map(((profilesRes.data ?? []) as ProfileRow[]).map((p) => [p.user_id, p]))
       setProfiles(profileMap)
       setPosts((postsRes.data ?? []) as PostRow[])
       setReactions((reactionsRes.data ?? []) as ReactionRow[])
       setVisibility((profileMap.get(user.id)?.default_post_visibility ?? 'members') as Visibility)
 
-      const friendIdSet = new Set<string>([
-        ...((friendshipsLowRes.data ?? []).map((row) => row.user_high_id as string)),
-        ...((friendshipsHighRes.data ?? []).map((row) => row.user_low_id as string)),
-      ])
-      setFriendIds(friendIdSet)
-
-      const interestIdSet = new Set<string>([
-        ...((sentInterestRes.data ?? []).map((row) => row.target_user_id as string)),
-        ...((receivedInterestRes.data ?? []).map((row) => row.requester_user_id as string)),
-        ...Array.from(friendIdSet),
-      ])
-      setInterestIds(interestIdSet)
-
-      const myGroupIds = new Set((myMembershipsRes.data ?? []).map((row) => row.group_id as string))
-      const sharedGroups = new Set<string>()
-      for (const membership of allMembershipsRes.data ?? []) {
-        if (membership.user_id !== user.id && myGroupIds.has(membership.group_id as string)) {
-          sharedGroups.add(membership.user_id as string)
-        }
+      const fIds = new Set<string>([...((friendshipsLowRes.data ?? []).map((r) => r.user_high_id as string)), ...((friendshipsHighRes.data ?? []).map((r) => r.user_low_id as string))])
+      setFriendIds(fIds)
+      setInterestIds(new Set([...((sentInterestRes.data ?? []).map((r) => r.target_user_id as string)), ...((receivedInterestRes.data ?? []).map((r) => r.requester_user_id as string)), ...Array.from(fIds)]))
+      
+      const myGIds = new Set((myMembershipsRes.data ?? []).map((r) => r.group_id as string))
+      const sGroups = new Set<string>()
+      for (const m of allMembershipsRes.data ?? []) {
+        if (m.user_id !== user.id && myGIds.has(m.group_id as string)) sGroups.add(m.user_id as string)
       }
-      setSharedGroupIds(sharedGroups)
-      setBlockedIds(
-        new Set(
-          (blocksRes.data ?? []).map((row) =>
-            row.blocker_user_id === user.id ? row.blocked_user_id : row.blocker_user_id
-          )
-        )
-      )
+      setSharedGroupIds(sGroups)
+      setBlockedIds(new Set((blocksRes.data ?? []).map((r) => r.blocker_user_id === user.id ? r.blocked_user_id : r.blocker_user_id)))
       setLoading(false)
     })()
   }, [supabase])
 
   const visiblePosts = useMemo(() => {
     if (!currentUserId) return []
-
-    return posts.filter((post) => {
-      if (blockedIds.has(post.user_id)) return false
-      if (post.user_id === currentUserId) return true
-      if (post.visibility === 'members') return true
-      if (post.visibility === 'friends') return friendIds.has(post.user_id)
-      if (post.visibility === 'interested') return interestIds.has(post.user_id)
-      if (post.visibility === 'same_group') return sharedGroupIds.has(post.user_id)
+    return posts.filter((p) => {
+      if (blockedIds.has(p.user_id)) return false
+      if (p.user_id === currentUserId) return true
+      if (p.visibility === 'members') return true
+      if (p.visibility === 'friends') return friendIds.has(p.user_id)
+      if (p.visibility === 'interested') return interestIds.has(p.user_id)
+      if (p.visibility === 'same_group') return sharedGroupIds.has(p.user_id)
       return false
     })
   }, [blockedIds, currentUserId, friendIds, interestIds, posts, sharedGroupIds])
@@ -186,27 +125,16 @@ export default function PostsPage() {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !currentUserId) return
-
     setUploadingImage(true)
-    setError(null)
-
     try {
       const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `${currentUserId}/${Date.now()}.${ext}`
-
-      const { data, error: uploadError } = await supabase.storage
-        .from('post-images')
-        .upload(path, file, { upsert: false })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
-        .getPublicUrl(data.path)
-
+      const { data, error } = await supabase.storage.from('post-images').upload(path, file)
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('post-images').getPublicUrl(data.path)
       setImageUrl(publicUrl)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.')
+    } catch (err) {
+      setError('이미지 업로드에 실패했습니다.')
     } finally {
       setUploadingImage(false)
     }
@@ -214,340 +142,187 @@ export default function PostsPage() {
 
   async function createPost(e: React.FormEvent) {
     e.preventDefault()
-    if (!currentUserId) return
-
-    if (!content.trim() && !imageUrl.trim()) {
-      setError('사진 주소나 글 중 하나는 입력해 주세요.')
-      return
-    }
-
+    if (!currentUserId || (!content.trim() && !imageUrl.trim())) return
     setSubmitting(true)
-    setError(null)
-
-    const { data, error: insertError } = await supabase
-      .from('posts')
-      .insert({
-        user_id: currentUserId,
-        image_url: imageUrl.trim() || null,
-        content: content.trim() || null,
-        visibility,
-      })
-      .select('id,user_id,image_url,content,visibility,created_at')
-      .single()
-
-    if (insertError || !data) {
-      setError(insertError?.message ?? '피드 등록에 실패했습니다.')
-      setSubmitting(false)
-      return
+    const { data, error: insertError } = await supabase.from('posts').insert({ user_id: currentUserId, image_url: imageUrl || null, content: content || null, visibility }).select().single()
+    if (data) {
+      setPosts((prev) => [data as PostRow, ...prev])
+      setImageUrl(''); setContent(''); setShowInput(false)
+    } else {
+      setError(insertError?.message ?? '등록 실패')
     }
-
-    setPosts((prev) => [data as PostRow, ...prev])
-    setImageUrl('')
-    setContent('')
-    setVisibility((profiles.get(currentUserId)?.default_post_visibility ?? 'members') as Visibility)
     setSubmitting(false)
   }
 
   async function toggleReaction(postId: number, reactionType: string) {
     if (!currentUserId) return
-    setError(null)
-
-    const existing = reactions.find(
-      (reaction) =>
-        reaction.post_id === postId &&
-        reaction.user_id === currentUserId &&
-        reaction.reaction_type === reactionType
-    )
-
+    const existing = reactions.find((r) => r.post_id === postId && r.user_id === currentUserId && r.reaction_type === reactionType)
     if (existing) {
-      const { error: deleteError } = await supabase
-        .from('post_reactions')
-        .delete()
-        .eq('post_id', postId)
-        .eq('user_id', currentUserId)
-        .eq('reaction_type', reactionType)
-
-      if (deleteError) {
-        setError(deleteError.message)
-        return
-      }
-
-      setReactions((prev) =>
-        prev.filter(
-          (reaction) =>
-            !(
-              reaction.post_id === postId &&
-              reaction.user_id === currentUserId &&
-              reaction.reaction_type === reactionType
-            )
-        )
-      )
-      return
+      await supabase.from('post_reactions').delete().eq('post_id', postId).eq('user_id', currentUserId).eq('reaction_type', reactionType)
+      setReactions((prev) => prev.filter((r) => !(r.post_id === postId && r.user_id === currentUserId && r.reaction_type === reactionType)))
+    } else {
+      await supabase.from('post_reactions').insert({ post_id: postId, user_id: currentUserId, reaction_type: reactionType })
+      setReactions((prev) => [...prev, { post_id: postId, user_id: currentUserId, reaction_type: reactionType }])
     }
-
-    const { error: insertError } = await supabase.from('post_reactions').insert({
-      post_id: postId,
-      user_id: currentUserId,
-      reaction_type: reactionType,
-    })
-
-    if (insertError) {
-      setError(insertError.message)
-      return
-    }
-
-    setReactions((prev) => [...prev, { post_id: postId, user_id: currentUserId, reaction_type: reactionType }])
   }
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
-  if (error && posts.length === 0) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
 
   return (
-    <div style={{ padding: 24, maxWidth: 980, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>생활 피드</h1>
-      <p style={{ marginTop: 8, color: '#57534e' }}>
-        사진과 짧은 글로 일상을 공유하고, 공개범위를 직접 조절해 보세요.
-      </p>
-      <AppNav />
-
-      <section
-        style={{
-          marginTop: 20,
-          padding: 20,
-          borderRadius: 20,
-          background: '#f5f5f4',
-          border: '1px solid #e7e5e4',
-        }}
-      >
-        <h2 style={{ fontSize: 22, fontWeight: 700 }}>새 피드 작성</h2>
-        <form onSubmit={createPost}>
-          <div style={{ marginTop: 14 }}>
-            <div style={{ fontWeight: 600, marginBottom: 10 }}>사진</div>
-            {imageUrl && (
-              <div style={{ marginBottom: 10 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imageUrl}
-                  alt="업로드된 이미지 미리보기"
-                  style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 14, background: '#e7e5e4' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
-                  style={{ marginTop: 6, padding: '6px 12px', fontSize: 13, borderRadius: 999, border: '1px solid #d6d3d1', background: '#fff' }}
-                >
-                  사진 제거
-                </button>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingImage}
-              style={{
-                padding: '10px 14px',
-                borderRadius: 999,
-                border: '1px solid #d6d3d1',
-                background: '#fafaf9',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {uploadingImage ? '업로드 중...' : imageUrl ? '사진 교체' : '사진 선택'}
-            </button>
-            <span style={{ marginLeft: 10, color: '#78716c', fontSize: 13 }}>JPG, PNG, WEBP · 최대 10MB</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-            />
+    <div className="min-h-screen bg-background pb-32">
+      <main className="max-w-2xl mx-auto px-5 pt-8">
+        <header className="mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">생활 피드</h1>
+            <p className="mt-2 text-muted-foreground font-medium">따뜻한 일상을 나누고 소통해 보세요.</p>
           </div>
+          {!showInput && (
+            <SilverButton size="md" icon={<Plus />} onClick={() => setShowInput(true)}>올리기</SilverButton>
+          )}
+        </header>
 
-          <label style={{ display: 'block', marginTop: 14 }}>짧은 글</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            style={{ width: '100%', padding: 12, fontSize: 16, minHeight: 120 }}
-            placeholder="오늘 있었던 일이나 취미 이야기를 남겨보세요."
-          />
+        <AppNav />
 
-          <label style={{ display: 'block', marginTop: 14 }}>공개범위</label>
-          <select
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value as Visibility)}
-            style={{ width: '100%', padding: 12, fontSize: 16 }}
-          >
-            {VISIBILITY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        {/* 피드 작성 섹션 */}
+        {showInput && (
+          <section className="mb-10 bg-white p-6 rounded-[32px] border-2 border-primary/20 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center">
+                  <Camera size={18} />
+                </div>
+                오늘의 소식 전하기
+              </h2>
+              <button onClick={() => setShowInput(false)} className="text-muted-foreground hover:text-foreground">
+                <X size={24} />
+              </button>
+            </div>
 
-          {error && <p style={{ marginTop: 10, color: 'crimson' }}>{error}</p>}
-
-          <button
-            disabled={submitting || uploadingImage}
-            style={{ marginTop: 16, padding: '12px 16px', fontWeight: 700 }}
-          >
-            {submitting ? '등록 중...' : '피드 올리기'}
-          </button>
-        </form>
-      </section>
-
-      <section style={{ marginTop: 20, display: 'grid', gap: 16 }}>
-        {visiblePosts.map((post) => {
-          const author = profiles.get(post.user_id)
-          const postReactions = reactions.filter((reaction) => reaction.post_id === post.id)
-          return (
-            <article
-              key={post.id}
-              style={{
-                padding: 20,
-                borderRadius: 20,
-                border: '1px solid #e7e5e4',
-                background: '#fff',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <Link href={`/people/${post.user_id}`} style={{ display: 'flex', gap: 12, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-                  <ProfileAvatar
-                    avatarUrl={author?.avatar_url ?? null}
-                    nickname={author?.nickname ?? '사용자'}
-                  />
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 700 }}>
-                      {author?.nickname ?? '알 수 없는 사용자'}
-                    </div>
-                    <div style={{ marginTop: 4, color: '#57534e' }}>
-                      {[author?.region, visibilityLabel(post.visibility)].filter(Boolean).join(' · ')}
-                    </div>
+            <form onSubmit={createPost} className="space-y-6">
+              <div className="relative group">
+                {imageUrl ? (
+                  <div className="relative aspect-[16/9] rounded-[20px] overflow-hidden bg-muted">
+                    <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setImageUrl('')} className="absolute top-3 right-3 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
+                      <X size={20} />
+                    </button>
                   </div>
-                </Link>
-                <div style={{ color: '#78716c', fontSize: 13 }}>{formatDate(post.created_at)}</div>
+                ) : (
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full aspect-[16/9] rounded-[20px] border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-3 text-muted-foreground group">
+                    <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <Camera size={28} />
+                    </div>
+                    <span className="font-bold">{uploadingImage ? '올리는 중...' : '사진 추가하기'}</span>
+                  </button>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </div>
 
-              {post.image_url && (
-                <div style={{ marginTop: 16 }}>
-                  <Link href={post.image_url} target="_blank" style={{ textDecoration: 'none' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={post.image_url}
-                      alt="생활 피드 이미지"
-                      style={{
-                        width: '100%',
-                        maxHeight: 460,
-                        objectFit: 'cover',
-                        borderRadius: 18,
-                        background: '#e7e5e4',
-                      }}
-                    />
+              <textarea value={content} onChange={(e) => setContent(e.target.value)} className="w-full p-5 bg-muted/30 rounded-[20px] border-none focus:ring-2 focus:ring-primary/20 text-lg min-h-[120px] placeholder:text-muted-foreground/50" placeholder="반가운 소식을 들려주세요..." />
+
+              <div className="flex flex-wrap gap-2">
+                {VISIBILITY_OPTIONS.map((opt) => (
+                  <button key={opt.value} type="button" onClick={() => setVisibility(opt.value)} className={cn("px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-all", visibility === opt.value ? "bg-primary text-white shadow-md" : "bg-muted text-muted-foreground hover:bg-muted/80")}>
+                    <opt.icon size={16} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <SilverButton type="submit" disabled={submitting || uploadingImage} className="w-full">
+                {submitting ? '등록 중...' : '소식 올리기'}
+              </SilverButton>
+            </form>
+          </section>
+        )}
+
+        {/* 피드 목록 */}
+        <div className="space-y-8 mt-8">
+          {visiblePosts.map((post) => {
+            const author = profiles.get(post.user_id)
+            const postReactions = reactions.filter((r) => r.post_id === post.id)
+            const visOpt = VISIBILITY_OPTIONS.find(o => o.value === post.visibility)
+
+            return (
+              <article key={post.id} className="bg-white rounded-[32px] border border-border/50 shadow-sm overflow-hidden p-6 hover:shadow-md transition-all">
+                <div className="flex justify-between items-start mb-6">
+                  <Link href={`/people/${post.user_id}`} className="flex gap-4 items-center group">
+                    <ProfileAvatar avatarUrl={author?.avatar_url ?? null} nickname={author?.nickname ?? '자'} />
+                    <div>
+                      <div className="text-xl font-bold group-hover:text-primary transition-colors">{author?.nickname ?? '사용자'}</div>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground font-medium">
+                        <Clock size={14} />
+                        {formatDate(post.created_at)}
+                        <span>•</span>
+                        <div className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-[11px]">
+                          {visOpt && <visOpt.icon size={10} />}
+                          {visOpt?.label}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                  {currentUserId !== post.user_id && (
+                    <SafetyActions targetUserId={post.user_id} postId={post.id} compact />
+                  )}
+                </div>
+
+                {post.image_url && (
+                  <div className="mb-5 rounded-[24px] overflow-hidden bg-muted aspect-[4/3]">
+                    <img src={post.image_url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
+
+                {post.content && (
+                  <p className="text-[18px] leading-relaxed text-foreground mb-6 whitespace-pre-wrap px-1">
+                    {post.content}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-2.5 pt-6 border-t border-border/40">
+                  {REACTIONS.map((type) => {
+                    const count = postReactions.filter((r) => r.reaction_type === type).length
+                    const mine = postReactions.some((r) => r.user_id === currentUserId && r.reaction_type === type)
+                    return (
+                      <button key={type} onClick={() => toggleReaction(post.id, type)} className={cn("px-5 py-2.5 rounded-full text-[15px] font-bold transition-all flex items-center gap-2", mine ? "bg-secondary text-white shadow-sm" : "bg-secondary/5 text-secondary hover:bg-secondary/10")}>
+                        {type}
+                        {count > 0 && <span className={cn("inline-flex items-center justify-center min-w-[20px] h-[20px] text-[12px] rounded-full", mine ? "bg-white text-secondary" : "bg-secondary text-white")}>{count}</span>}
+                      </button>
+                    )
+                  })}
+                  <Link href={`/posts/${post.id}`} className="ml-auto w-10 h-10 flex items-center justify-center bg-muted rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                    <ChevronRight size={20} />
                   </Link>
                 </div>
-              )}
-
-              {post.content && (
-                <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {post.content}
-                </p>
-              )}
-
-              <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {REACTIONS.map((reactionType) => {
-                  const count = postReactions.filter((reaction) => reaction.reaction_type === reactionType).length
-                  const mine = postReactions.some(
-                    (reaction) =>
-                      reaction.user_id === currentUserId && reaction.reaction_type === reactionType
-                  )
-                  return (
-                    <button
-                      key={reactionType}
-                      type="button"
-                      onClick={() => toggleReaction(post.id, reactionType)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: 999,
-                        border: '1px solid #d6d3d1',
-                        background: mine ? '#1c1917' : '#fafaf9',
-                        color: mine ? '#fff' : '#1c1917',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {reactionType} {count > 0 ? count : ''}
-                    </button>
-                  )
-                })}
+              </article>
+            )
+          })}
+          
+          {visiblePosts.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
+                <ImageIcon size={40} />
               </div>
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                <Link
-                  href={`/posts/${post.id}`}
-                  style={{ textDecoration: 'underline', color: '#57534e', fontWeight: 600, fontSize: 14 }}
-                >
-                  상세 보기
-                </Link>
-                {currentUserId !== post.user_id && (
-                  <SafetyActions targetUserId={post.user_id} postId={post.id} compact />
-                )}
-              </div>
-            </article>
-          )
-        })}
-        {visiblePosts.length === 0 && (
-          <div style={{ padding: 24, borderRadius: 16, background: '#fafaf9', color: '#57534e' }}>
-            아직 보이는 피드가 없어요. 첫 피드를 작성해 보세요.
-          </div>
-        )}
-      </section>
+              <p className="text-muted-foreground font-bold">아직 볼 수 있는 소식이 없어요.</p>
+              <SilverButton variant="ghost" className="mt-4" onClick={() => setShowInput(true)}>첫 소식 올리기</SilverButton>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   )
 }
 
-function ProfileAvatar({
-  avatarUrl,
-  nickname,
-}: {
-  avatarUrl: string | null
-  nickname: string
-}) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatarUrl}
-        alt={`${nickname} 프로필 사진`}
-        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#e7e5e4' }}
-      />
-    )
-  }
-
-  return (
-    <div
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: '50%',
-        display: 'grid',
-        placeItems: 'center',
-        background: '#d6d3d1',
-        color: '#1c1917',
-        fontWeight: 700,
-      }}
-    >
+function ProfileAvatar({ avatarUrl, nickname }: { avatarUrl: string | null; nickname: string }) {
+  return avatarUrl ? (
+    <img src={avatarUrl} alt="" className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-sm" />
+  ) : (
+    <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-xl font-black text-muted-foreground ring-2 ring-white shadow-sm">
       {nickname.slice(0, 1)}
     </div>
   )
 }
 
-function visibilityLabel(visibility: Visibility) {
-  return VISIBILITY_OPTIONS.find((option) => option.value === visibility)?.label ?? visibility
-}
-
-function formatDate(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(
-    date.getMinutes()
-  ).padStart(2, '0')}`
+function formatDate(v: string) {
+  const d = new Date(v)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }

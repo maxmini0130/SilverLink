@@ -4,29 +4,11 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
-
-type ConversationRow = {
-  id: string
-  kind: string
-  created_at: string
-  updated_at: string
-}
-
-type ProfileRow = {
-  user_id: string
-  nickname: string
-  avatar_url: string | null
-}
-
-type MessageRow = {
-  conversation_id: string
-  message: string
-  created_at: string
-}
+import { MessageSquare, ChevronRight, Clock, User } from 'lucide-react'
 
 type ConversationSummary = {
   id: string
-  otherProfile: ProfileRow | null
+  otherProfile: { user_id: string; nickname: string; avatar_url: string | null } | null
   latestMessage: string | null
   updatedAt: string
 }
@@ -40,205 +22,104 @@ export default function MessagesPage() {
   useEffect(() => {
     ;(async () => {
       setLoading(true)
-      setError(null)
-
       const { data: auth } = await supabase.auth.getUser()
-      const user = auth.user
-      if (!user) {
-        setLoading(false)
-        setError('로그인이 필요합니다.')
-        return
-      }
+      if (!auth.user) { setLoading(false); return }
 
-      const { data: memberships, error: membershipError } = await supabase
-        .from('conversation_members')
-        .select('conversation_id')
-        .eq('user_id', user.id)
+      const { data: mRes } = await supabase.from('conversation_members').select('conversation_id').eq('user_id', auth.user.id)
+      const ids = (mRes ?? []).map(r => r.conversation_id as string)
+      if (ids.length === 0) { setItems([]); setLoading(false); return }
 
-      if (membershipError) {
-        setError(membershipError.message)
-        setLoading(false)
-        return
-      }
-
-      const { data: blocks } = await supabase
-        .from('blocks')
-        .select('blocker_user_id,blocked_user_id')
-        .or(`blocker_user_id.eq.${user.id},blocked_user_id.eq.${user.id}`)
-
-      const conversationIds = (memberships ?? []).map((row) => row.conversation_id as string)
-      if (conversationIds.length === 0) {
-        setItems([])
-        setLoading(false)
-        return
-      }
-
-      const [conversationsRes, membersRes, messagesRes] = await Promise.all([
-        supabase
-          .from('conversations')
-          .select('id,kind,created_at,updated_at')
-          .in('id', conversationIds)
-          .order('updated_at', { ascending: false }),
-        supabase
-          .from('conversation_members')
-          .select('conversation_id,user_id')
-          .in('conversation_id', conversationIds),
-        supabase
-          .from('messages')
-          .select('conversation_id,message,created_at')
-          .in('conversation_id', conversationIds)
-          .order('created_at', { ascending: false }),
+      const [cRes, memRes, msgRes, bRes] = await Promise.all([
+        supabase.from('conversations').select('id,updated_at').in('id', ids).order('updated_at', { ascending: false }),
+        supabase.from('conversation_members').select('conversation_id,user_id').in('conversation_id', ids),
+        supabase.from('messages').select('conversation_id,message,created_at').in('conversation_id', ids).order('created_at', { ascending: false }),
+        supabase.from('blocks').select('blocker_user_id,blocked_user_id').or(`blocker_user_id.eq.${auth.user.id},blocked_user_id.eq.${auth.user.id}`)
       ])
 
-      if (conversationsRes.error || membersRes.error || messagesRes.error) {
-        setError(conversationsRes.error?.message || membersRes.error?.message || messagesRes.error?.message || '대화를 불러오지 못했습니다.')
-        setLoading(false)
-        return
-      }
+      const latestMsgs = new Map(); (msgRes.data ?? []).forEach(m => { if (!latestMsgs.has(m.conversation_id)) latestMsgs.set(m.conversation_id, m) })
+      const oIds = Array.from(new Set((memRes.data ?? []).filter(m => m.user_id !== auth.user.id).map(m => m.user_id)))
+      const { data: pRes } = await supabase.from('profiles').select('user_id,nickname,avatar_url').in('user_id', oIds)
+      const pMap = new Map((pRes ?? []).map(p => [p.user_id, p]))
+      const bIds = new Set((bRes ?? []).map(r => r.blocker_user_id === auth.user.id ? r.blocked_user_id : r.blocker_user_id))
 
-      const conversations = (conversationsRes.data ?? []) as ConversationRow[]
-      const members = (membersRes.data ?? []) as Array<{ conversation_id: string; user_id: string }>
-      const latestMessages = new Map<string, MessageRow>()
-      for (const row of (messagesRes.data ?? []) as MessageRow[]) {
-        if (!latestMessages.has(row.conversation_id)) latestMessages.set(row.conversation_id, row)
-      }
-
-      const otherUserIds = Array.from(
-        new Set(
-          members
-            .filter((member) => member.user_id !== user.id)
-            .map((member) => member.user_id)
-        )
-      )
-
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id,nickname,avatar_url')
-        .in('user_id', otherUserIds)
-
-      if (profileError) {
-        setError(profileError.message)
-        setLoading(false)
-        return
-      }
-
-      const profileMap = new Map(
-        ((profiles ?? []) as ProfileRow[]).map((profile) => [profile.user_id, profile])
-      )
-
-      const blockedIds = new Set(
-        (blocks ?? []).map((row) =>
-          row.blocker_user_id === user.id ? row.blocked_user_id : row.blocker_user_id
-        )
-      )
-
-      const summaries = conversations.map((conversation) => {
-        const otherMember = members.find(
-          (member) => member.conversation_id === conversation.id && member.user_id !== user.id
-        )
+      const summaries = (cRes.data ?? []).map(c => {
+        const oMem = (memRes.data ?? []).find(m => m.conversation_id === c.id && m.user_id !== auth.user.id)
         return {
-          id: conversation.id,
-          otherProfile: otherMember ? profileMap.get(otherMember.user_id) ?? null : null,
-          latestMessage: latestMessages.get(conversation.id)?.message ?? null,
-          updatedAt: latestMessages.get(conversation.id)?.created_at ?? conversation.updated_at,
+          id: c.id,
+          otherProfile: oMem ? pMap.get(oMem.user_id) ?? null : null,
+          latestMessage: latestMsgs.get(c.id)?.message ?? null,
+          updatedAt: latestMsgs.get(c.id)?.created_at ?? c.updated_at,
         }
-      }).filter((item) => !item.otherProfile || !blockedIds.has(item.otherProfile.user_id))
+      }).filter(i => !i.otherProfile || !bIds.has(i.otherProfile.user_id))
 
-      setItems(summaries)
-      setLoading(false)
+      setItems(summaries); setLoading(false)
     })()
   }, [supabase])
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
-  if (error) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
 
   return (
-    <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>대화</h1>
-      <p style={{ marginTop: 8, color: '#57534e' }}>
-        상호 관심, 1촌, 같은 모임 조건을 만족한 대화만 여기에 표시됩니다.
-      </p>
-      <AppNav />
+    <div className="min-h-screen bg-background pb-32 text-[18px]">
+      <main className="max-w-2xl mx-auto px-5 pt-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">대화함</h1>
+          <p className="mt-2 text-muted-foreground font-medium">소중한 인연과 이야기를 나누어 보세요.</p>
+        </header>
 
-      <section style={{ marginTop: 20, display: 'grid', gap: 14 }}>
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            href={`/messages/${item.id}`}
-            style={{
-              display: 'block',
-              padding: 18,
-              borderRadius: 18,
-              border: '1px solid #e7e5e4',
-              background: '#fff',
-              color: '#1c1917',
-              textDecoration: 'none',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-              <ProfileAvatar
-                avatarUrl={item.otherProfile?.avatar_url ?? null}
-                nickname={item.otherProfile?.nickname ?? '대화 상대'}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 18, fontWeight: 700 }}>
-                  {item.otherProfile?.nickname ?? '알 수 없는 사용자'}
+        <AppNav />
+
+        <div className="space-y-4 mt-8">
+          {items.map((item) => (
+            <Link key={item.id} href={`/messages/${item.id}`} className="group">
+              <article className="bg-white p-5 rounded-[28px] border border-border/50 shadow-sm hover:shadow-md transition-all flex items-center gap-5">
+                <ProfileAvatar avatarUrl={item.otherProfile?.avatar_url ?? null} nickname={item.otherProfile?.nickname ?? '자'} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {item.otherProfile?.nickname ?? '알 수 없는 사용자'}
+                    </h3>
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1 whitespace-nowrap">
+                      <Clock size={12} />
+                      {formatDate(item.updatedAt)}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground truncate leading-relaxed">
+                    {item.latestMessage ?? '먼저 인사를 건네보세요.'}
+                  </p>
                 </div>
-                <div style={{ marginTop: 6, color: '#57534e' }}>
-                  {item.latestMessage ?? '아직 메시지가 없어요. 먼저 인사를 건네보세요.'}
-                </div>
+                <ChevronRight className="text-muted-foreground/30 group-hover:text-primary transition-colors" size={20} />
+              </article>
+            </Link>
+          ))}
+
+          {items.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
+                <MessageSquare size={40} />
               </div>
-              <div style={{ color: '#78716c', fontSize: 13 }}>{formatDate(item.updatedAt)}</div>
+              <p className="text-muted-foreground font-bold">아직 진행 중인 대화가 없어요.</p>
+              <Link href="/people" className="mt-4 inline-block text-primary font-bold hover:underline underline-offset-4">
+                새로운 인연 찾아보기
+              </Link>
             </div>
-          </Link>
-        ))}
-        {items.length === 0 && (
-          <div style={{ padding: 24, borderRadius: 16, background: '#fafaf9', color: '#57534e' }}>
-            아직 시작한 개인 대화가 없어요. 사람 프로필에서 대화를 시작해 보세요.
-          </div>
-        )}
-      </section>
+          )}
+        </div>
+      </main>
     </div>
   )
 }
 
-function ProfileAvatar({
-  avatarUrl,
-  nickname,
-}: {
-  avatarUrl: string | null
-  nickname: string
-}) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatarUrl}
-        alt={`${nickname} 프로필 사진`}
-        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#e7e5e4' }}
-      />
-    )
-  }
-
-  return (
-    <div
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: '50%',
-        display: 'grid',
-        placeItems: 'center',
-        background: '#d6d3d1',
-        fontWeight: 700,
-      }}
-    >
+function ProfileAvatar({ avatarUrl, nickname }: { avatarUrl: string | null; nickname: string }) {
+  return avatarUrl ? (
+    <img src={avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-white shadow-sm" />
+  ) : (
+    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-black text-muted-foreground ring-2 ring-white shadow-sm">
       {nickname.slice(0, 1)}
     </div>
   )
 }
 
-function formatDate(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return `${date.getMonth() + 1}/${date.getDate()}`
+function formatDate(v: string) {
+  const d = new Date(v)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }

@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
+import { SilverButton } from '@/components/common/silver-button'
+import { Users, MapPin, Tag, Plus, ChevronRight, Calendar } from 'lucide-react'
 
 type GroupRow = {
   id: string
@@ -24,9 +26,6 @@ export default function GroupsPage() {
   useEffect(() => {
     ;(async () => {
       setError(null)
-      const { error } = await supabase.auth.getUser()
-      if (error) setError(error.message)
-
       const { data, error: qerr } = await supabase
         .from('groups')
         .select('id,title,category,region,description,max_members,created_at')
@@ -38,54 +37,80 @@ export default function GroupsPage() {
     })()
   }, [supabase])
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
-  if (error) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
 
   return (
-    <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>모임</h1>
-        <Link
-          href="/groups/new"
-          style={{
-            padding: '10px 14px',
-            borderRadius: 10,
-            background: '#1c1917',
-            color: '#fff',
-            textDecoration: 'none',
-            fontSize: 15,
-            fontWeight: 700,
-          }}
-        >
-          + 모임 만들기
-        </Link>
-      </div>
-      <AppNav />
+    <div className="min-h-screen bg-background pb-32">
+      <main className="max-w-2xl mx-auto px-5 pt-8">
+        <header className="mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">모임 찾기</h1>
+            <p className="mt-2 text-muted-foreground font-medium">관심사가 비슷한 분들과 함께해 보세요.</p>
+          </div>
+          <SilverButton size="md" icon={<Plus />} onClick={() => window.location.href='/groups/new'}>
+            만들기
+          </SilverButton>
+        </header>
 
-      <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
-        {groups.map((g) => (
-          <Link
-            key={g.id}
-            href={`/groups/${g.id}`}
-            style={{
-              display: 'block',
-              padding: 18,
-              border: '1px solid #e7e5e4',
-              borderRadius: 18,
-              background: '#fff',
-              textDecoration: 'none',
-              color: 'inherit',
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{g.title}</div>
-            <div style={{ marginTop: 6, opacity: 0.85 }}>
-              {g.category} · {g.region} · 정원 {g.max_members}명
+        <AppNav />
+
+        <div className="space-y-6 mt-8">
+          {groups.map((g) => (
+            <Link key={g.id} href={`/groups/${g.id}`} className="group">
+              <article className="bg-white p-6 rounded-[32px] border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-secondary/10 text-secondary text-xs font-bold rounded-full uppercase tracking-wider">
+                      {g.category}
+                    </span>
+                    <div className="flex items-center gap-1 text-muted-foreground text-xs font-medium">
+                      <MapPin size={12} />
+                      {g.region}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-full">
+                    <Users size={12} />
+                    정원 {g.max_members}명
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors mb-2">
+                    {g.title}
+                  </h3>
+                  {g.description && (
+                    <p className="text-muted-foreground leading-relaxed line-clamp-2 text-[16px]">
+                      {g.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-border/40 flex items-center justify-between text-sm text-muted-foreground font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={14} />
+                    {new Date(g.created_at).toLocaleDateString('ko-KR')} 개설
+                  </div>
+                  <div className="flex items-center gap-1 text-primary font-bold">
+                    상세보기 <ChevronRight size={16} />
+                  </div>
+                </div>
+              </article>
+            </Link>
+          ))}
+          
+          {groups.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
+                <Users size={40} />
+              </div>
+              <p className="text-muted-foreground font-bold italic text-lg">아직 만들어진 모임이 없어요.</p>
+              <SilverButton variant="ghost" className="mt-4" onClick={() => window.location.href='/groups/new'}>
+                첫 모임 주최하기
+              </SilverButton>
             </div>
-            {g.description && <div style={{ marginTop: 8, opacity: 0.8 }}>{g.description}</div>}
-          </Link>
-        ))}
-        {groups.length === 0 && <div>아직 모임이 없어요. 첫 모임을 만들어 보세요.</div>}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   )
 }

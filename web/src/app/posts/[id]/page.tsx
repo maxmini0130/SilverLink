@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { SafetyActions } from '@/components/safety-actions'
+import { ChevronLeft, MapPin, Clock, Globe } from 'lucide-react'
 
 type PostRow = {
   id: number
@@ -77,7 +78,6 @@ export default function PostDetailPage() {
 
       const typedPost = postData as PostRow
 
-      // 차단 관계 확인
       if (typedPost.user_id !== user.id) {
         const { data: block } = await supabase
           .from('blocks')
@@ -150,153 +150,138 @@ export default function PostDetailPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
 
   if (error || !post) {
     return (
-      <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-        <Link href="/posts" style={{ textDecoration: 'underline', color: '#57534e' }}>
-          ← 피드 목록
-        </Link>
-        <p style={{ marginTop: 16, color: 'crimson' }}>{error ?? '피드를 찾을 수 없어요.'}</p>
+      <div className="min-h-screen bg-background p-6 flex flex-col items-center justify-center">
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-border/50 max-w-md w-full text-center">
+          <p className="text-red-500 font-bold mb-6">{error ?? '피드를 찾을 수 없어요.'}</p>
+          <Link href="/posts" className="inline-flex items-center gap-2 text-primary font-bold hover:underline">
+            <ChevronLeft size={20} />
+            피드 목록으로
+          </Link>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <Link href="/posts" style={{ textDecoration: 'underline', color: '#57534e' }}>
-        ← 피드 목록
-      </Link>
-      <AppNav />
-
-      <article
-        style={{
-          marginTop: 20,
-          padding: 24,
-          borderRadius: 20,
-          border: '1px solid #e7e5e4',
-          background: '#fff',
-        }}
-      >
-        {/* 작성자 */}
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Link href={`/people/${post.user_id}`} style={{ textDecoration: 'none', display: 'flex', gap: 14, alignItems: 'center' }}>
-            <ProfileAvatar avatarUrl={author?.avatar_url ?? null} nickname={author?.nickname ?? '사용자'} />
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#1c1917' }}>
-                {author?.nickname ?? '알 수 없는 사용자'}
-              </div>
-              <div style={{ marginTop: 4, color: '#57534e' }}>
-                {[author?.region, VISIBILITY_LABELS[post.visibility]].filter(Boolean).join(' · ')}
-              </div>
-            </div>
+    <div className="min-h-screen bg-background pb-32">
+      <main className="max-w-2xl mx-auto">
+        {/* 상단 헤더 */}
+        <div className="px-5 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-10">
+          <Link href="/posts" className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-sm border border-border/50 text-foreground">
+            <ChevronLeft size={24} />
           </Link>
-          <div style={{ marginLeft: 'auto', color: '#78716c', fontSize: 13 }}>
-            {formatDate(post.created_at)}
-          </div>
+          <h2 className="font-bold text-lg">피드 상세</h2>
+          <div className="w-10" />
         </div>
 
-        {/* 이미지 */}
-        {post.image_url && (
-          <div style={{ marginTop: 20 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.image_url}
-              alt="피드 이미지"
-              style={{
-                width: '100%',
-                maxHeight: 560,
-                objectFit: 'cover',
-                borderRadius: 18,
-                background: '#e7e5e4',
-              }}
-            />
-          </div>
-        )}
+        <AppNav />
 
-        {/* 본문 */}
-        {post.content && (
-          <p style={{ marginTop: 20, fontSize: 17, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: '#1c1917' }}>
-            {post.content}
-          </p>
-        )}
+        <div className="px-5 mt-4">
+          <article className="bg-white rounded-[32px] border border-border/50 shadow-sm overflow-hidden">
+            {/* 작성자 정보 */}
+            <div className="p-6 pb-4">
+              <Link href={`/people/${post.user_id}`} className="flex items-center gap-3 group">
+                {author?.avatar_url ? (
+                  <img
+                    src={author.avatar_url}
+                    alt={`${author.nickname} 프로필 사진`}
+                    className="w-14 h-14 rounded-full object-cover bg-muted"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-black">
+                    {(author?.nickname ?? '?').slice(0, 1)}
+                  </div>
+                )}
+                <div>
+                  <div className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                    {author?.nickname ?? '알 수 없는 사용자'}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+                    {author?.region && (
+                      <span className="flex items-center gap-1">
+                        <MapPin size={12} />
+                        {author.region}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Globe size={12} />
+                      {VISIBILITY_LABELS[post.visibility] ?? post.visibility}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock size={12} />
+                  {formatDate(post.created_at)}
+                </div>
+              </Link>
+            </div>
 
-        {/* 반응 버튼 */}
-        <div style={{ marginTop: 24, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {REACTIONS.map((reactionType) => {
-            const count = reactions.filter((r) => r.reaction_type === reactionType).length
-            const mine = reactions.some(
-              (r) => r.user_id === currentUserId && r.reaction_type === reactionType
-            )
-            return (
-              <button
-                key={reactionType}
-                type="button"
-                onClick={() => toggleReaction(reactionType)}
-                style={{
-                  padding: '10px 18px',
-                  borderRadius: 999,
-                  border: '1px solid #d6d3d1',
-                  background: mine ? '#1c1917' : '#fafaf9',
-                  color: mine ? '#fff' : '#1c1917',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  cursor: 'pointer',
-                }}
-              >
-                {reactionType}{count > 0 ? ` ${count}` : ''}
-              </button>
-            )
-          })}
+            {/* 이미지 */}
+            {post.image_url && (
+              <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+                <img
+                  src={post.image_url}
+                  alt="피드 이미지"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* 본문 */}
+            <div className="p-6">
+              {post.content && (
+                <p className="text-foreground leading-relaxed whitespace-pre-wrap text-[17px]">
+                  {post.content}
+                </p>
+              )}
+
+              {/* 반응 버튼 */}
+              <div className="mt-6 flex flex-wrap gap-2">
+                {REACTIONS.map((reactionType) => {
+                  const count = reactions.filter((r) => r.reaction_type === reactionType).length
+                  const mine = reactions.some(
+                    (r) => r.user_id === currentUserId && r.reaction_type === reactionType
+                  )
+                  return (
+                    <button
+                      key={reactionType}
+                      type="button"
+                      onClick={() => toggleReaction(reactionType)}
+                      className={`px-5 py-2.5 rounded-full font-semibold text-[15px] border transition-all ${
+                        mine
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'bg-white text-foreground border-border/60 hover:border-primary/40'
+                      }`}
+                    >
+                      {reactionType}{count > 0 ? ` ${count}` : ''}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* 신고/차단 */}
+              {currentUserId && currentUserId !== post.user_id && (
+                <div className="mt-6 pt-5 border-t border-border/40">
+                  <SafetyActions targetUserId={post.user_id} postId={post.id} />
+                </div>
+              )}
+
+              {/* 내 피드 관리 링크 */}
+              {currentUserId === post.user_id && (
+                <div className="mt-6 pt-5 border-t border-border/40">
+                  <Link href="/me" className="text-primary font-bold hover:underline">
+                    내 피드 관리 →
+                  </Link>
+                </div>
+              )}
+            </div>
+          </article>
         </div>
-
-        {/* 신고/차단 (내 피드 아닐 때) */}
-        {currentUserId && currentUserId !== post.user_id && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #f5f5f4' }}>
-            <SafetyActions targetUserId={post.user_id} postId={post.id} />
-          </div>
-        )}
-
-        {/* 내 피드일 때 관리 링크 */}
-        {currentUserId === post.user_id && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #f5f5f4' }}>
-            <Link href="/me" style={{ textDecoration: 'underline', color: '#57534e', fontWeight: 600 }}>
-              내 피드 관리 →
-            </Link>
-          </div>
-        )}
-      </article>
-    </div>
-  )
-}
-
-function ProfileAvatar({ avatarUrl, nickname }: { avatarUrl: string | null; nickname: string }) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatarUrl}
-        alt={`${nickname} 프로필 사진`}
-        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', background: '#e7e5e4' }}
-      />
-    )
-  }
-  return (
-    <div
-      style={{
-        width: 56,
-        height: 56,
-        borderRadius: '50%',
-        display: 'grid',
-        placeItems: 'center',
-        background: '#d6d3d1',
-        color: '#1c1917',
-        fontSize: 22,
-        fontWeight: 700,
-      }}
-    >
-      {nickname.slice(0, 1)}
+      </main>
     </div>
   )
 }

@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { SafetyActions } from '@/components/safety-actions'
+import { ChevronLeft, Send, User, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type MessageRow = {
   id: number
@@ -21,6 +23,7 @@ type ProfileRow = {
 
 export default function MessageDetailPage() {
   const supabase = createClient()
+  const router = useRouter()
   const params = useParams<{ id: string }>()
   const conversationId = useMemo(() => params.id, [params.id])
 
@@ -34,215 +37,115 @@ export default function MessageDetailPage() {
 
   useEffect(() => {
     let active = true
-    let channel: ReturnType<typeof supabase.channel> | null = null
+    let channel: any = null
 
     ;(async () => {
       setLoading(true)
-      setError(null)
-
       const { data: auth } = await supabase.auth.getUser()
-      const user = auth.user
-      if (!user) {
-        if (active) {
-          setError('로그인이 필요합니다.')
-          setLoading(false)
-        }
-        return
-      }
+      if (!auth.user) { setLoading(false); return }
 
-      const { data: membership, error: membershipError } = await supabase
-        .from('conversation_members')
-        .select('user_id')
-        .eq('conversation_id', conversationId)
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (!membership || membershipError) {
-        if (active) {
-          setError(membershipError?.message ?? '이 대화에 접근할 수 없습니다.')
-          setLoading(false)
-        }
-        return
-      }
+      const { data: membership } = await supabase.from('conversation_members').select('user_id').eq('conversation_id', conversationId).eq('user_id', auth.user.id).maybeSingle()
+      if (!membership) { if (active) { setError('이 대화에 접근할 수 없습니다.'); setLoading(false) }; return }
 
       const [membersRes, messagesRes] = await Promise.all([
-        supabase
-          .from('conversation_members')
-          .select('user_id')
-          .eq('conversation_id', conversationId),
-        supabase
-          .from('messages')
-          .select('id,user_id,message,created_at')
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true }),
+        supabase.from('conversation_members').select('user_id').eq('conversation_id', conversationId),
+        supabase.from('messages').select('id,user_id,message,created_at').eq('conversation_id', conversationId).order('created_at', { ascending: true }),
       ])
 
-      if (membersRes.error || messagesRes.error) {
-        if (active) {
-          setError(membersRes.error?.message || messagesRes.error?.message || '대화를 불러오지 못했습니다.')
-          setLoading(false)
-        }
-        return
-      }
-
-      const otherMemberId = (membersRes.data ?? [])
-        .map((row) => row.user_id as string)
-        .find((id) => id !== user.id)
-
-      let profile: ProfileRow | null = null
+      const otherMemberId = (membersRes.data ?? []).find(m => m.user_id !== auth.user.id)?.user_id
       if (otherMemberId) {
-        const { data: block } = await supabase
-          .from('blocks')
-          .select('blocker_user_id')
-          .or(`and(blocker_user_id.eq.${user.id},blocked_user_id.eq.${otherMemberId}),and(blocker_user_id.eq.${otherMemberId},blocked_user_id.eq.${user.id})`)
-          .maybeSingle()
-
-        if (block) {
-          if (active) {
-            setError('차단 관계가 있어 이 대화에 접근할 수 없습니다.')
-            setLoading(false)
-          }
-          return
-        }
-
-        const { data } = await supabase
-          .from('profiles')
-          .select('user_id,nickname,avatar_url')
-          .eq('user_id', otherMemberId)
-          .maybeSingle()
-        profile = (data as ProfileRow | null) ?? null
+        const { data: block } = await supabase.from('blocks').select('blocker_user_id').or(`and(blocker_user_id.eq.${auth.user.id},blocked_user_id.eq.${otherMemberId}),and(blocker_user_id.eq.${otherMemberId},blocked_user_id.eq.${auth.user.id})`).maybeSingle()
+        if (block) { if (active) { setError('차단 관계로 인해 대화가 중단되었습니다.'); setLoading(false) }; return }
+        const { data: profile } = await supabase.from('profiles').select('user_id,nickname,avatar_url').eq('user_id', otherMemberId).maybeSingle()
+        setOtherProfile(profile as ProfileRow)
       }
 
       if (!active) return
-
-      setCurrentUserId(user.id)
-      setOtherProfile(profile)
+      setCurrentUserId(auth.user.id)
       setMessages((messagesRes.data ?? []) as MessageRow[])
       setLoading(false)
 
-      channel = supabase
-        .channel(`messages:${conversationId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            const next = payload.new as MessageRow
-            setMessages((prev) => (prev.some((row) => row.id === next.id) ? prev : [...prev, next]))
-          }
-        )
-        .subscribe()
-
+      channel = supabase.channel(`messages:${conversationId}`).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` }, (payload) => {
+        const next = payload.new as MessageRow
+        setMessages((prev) => (prev.some((row) => row.id === next.id) ? prev : [...prev, next]))
+      }).subscribe()
     })()
-
-    return () => {
-      active = false
-      if (channel) supabase.removeChannel(channel)
-    }
+    return () => { active = false; if (channel) supabase.removeChannel(channel) }
   }, [conversationId, supabase])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      void sendMessage()
-    }
-  }
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   async function sendMessage() {
-    const message = text.trim()
-    if (!message || !currentUserId) return
-
-    setError(null)
+    const msg = text.trim(); if (!msg || !currentUserId) return
     setText('')
-
-    const { data: inserted, error: insertError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        user_id: currentUserId,
-        message,
-      })
-      .select('id,user_id,message,created_at')
-      .single()
-
-    if (insertError || !inserted) {
-      setError(insertError?.message ?? '메시지 전송에 실패했습니다.')
-      setText(message)
-      return
+    const { data: inserted, error: insertError } = await supabase.from('messages').insert({ conversation_id: conversationId, user_id: currentUserId, message: msg }).select().single()
+    if (inserted) {
+      setMessages((p) => (p.some((r) => r.id === (inserted as MessageRow).id) ? p : [...p, inserted as MessageRow]))
+      await supabase.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId)
     }
-
-    // 즉시 반영 (Realtime 이벤트가 없거나 느려도 보임).
-    // Realtime 구독이 같은 id를 다시 보내면 dedupe로 무시됨.
-    const row = inserted as MessageRow
-    setMessages((prev) => (prev.some((r) => r.id === row.id) ? prev : [...prev, row]))
-
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId)
   }
 
-  if (loading) return <div style={{ padding: 24 }}>로딩 중...</div>
-  if (error) return <div style={{ padding: 24, color: 'crimson' }}>{error}</div>
+  if (loading) return <div className="p-10 text-center font-bold text-muted-foreground">불러오는 중...</div>
+  if (error) return <div className="p-10 text-center font-bold text-red-500 bg-red-50">{error}</div>
 
   return (
-    <div style={{ padding: 24, maxWidth: 920, margin: '0 auto' }}>
-      <Link href="/messages" style={{ textDecoration: 'underline', color: '#57534e' }}>
-        ← 대화 목록
-      </Link>
-      <h1 style={{ marginTop: 14, fontSize: 24, fontWeight: 700 }}>
-        {otherProfile?.nickname ?? '개인 대화'}
-      </h1>
-      {otherProfile && <SafetyActions targetUserId={otherProfile.user_id} compact />}
+    <div className="min-h-screen bg-background flex flex-col max-w-2xl mx-auto shadow-xl ring-1 ring-border/50">
+      {/* 상단바 */}
+      <header className="px-5 py-4 border-b border-border/50 bg-white sticky top-0 z-20 flex items-center gap-4">
+        <Link href="/messages" className="w-10 h-10 flex items-center justify-center bg-muted rounded-full text-foreground hover:bg-primary/10 transition-colors">
+          <ChevronLeft size={24} />
+        </Link>
+        <Link href={`/people/${otherProfile?.user_id}`} className="flex-1 flex items-center gap-3">
+          <ProfileAvatar avatarUrl={otherProfile?.avatar_url ?? null} nickname={otherProfile?.nickname ?? '자'} size="sm" />
+          <div>
+            <h2 className="text-xl font-black text-foreground">{otherProfile?.nickname ?? '대화 상대'}</h2>
+            <div className="flex items-center gap-1 text-xs text-primary font-bold">
+              <ShieldCheck size={12} />
+              인증 회원
+            </div>
+          </div>
+        </Link>
+        {otherProfile && <SafetyActions targetUserId={otherProfile.user_id} compact />}
+      </header>
 
-      <div style={{ marginTop: 16, border: '1px solid #e7e5e4', borderRadius: 18, background: '#fff', padding: 16 }}>
-        <div style={{ maxHeight: 480, overflow: 'auto', display: 'grid', gap: 10 }}>
-          {messages.map((row) => {
-            const mine = row.user_id === currentUserId
-            return (
-              <div
-                key={row.id}
-                style={{
-                  justifySelf: mine ? 'end' : 'start',
-                  maxWidth: '78%',
-                  padding: '10px 14px',
-                  borderRadius: 16,
-                  background: mine ? '#1c1917' : '#f5f5f4',
-                  color: mine ? '#fff' : '#1c1917',
-                }}
-              >
-                <div style={{ fontSize: 15 }}>{row.message}</div>
-                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>{formatTime(row.created_at)}</div>
+      {/* 대화 영역 */}
+      <main className="flex-1 overflow-y-auto p-5 space-y-6 bg-[#FAF8F5]">
+        {messages.map((row) => {
+          const mine = row.user_id === currentUserId
+          return (
+            <div key={row.id} className={cn("flex flex-col max-w-[85%]", mine ? "ml-auto items-end" : "mr-auto items-start")}>
+              <div className={cn("px-5 py-3.5 rounded-[24px] text-lg font-medium shadow-sm leading-relaxed", mine ? "bg-primary text-white rounded-br-none" : "bg-white text-foreground rounded-bl-none")}>
+                {row.message}
               </div>
-            )
-          })}
-          {messages.length === 0 && (
-            <div style={{ color: '#57534e' }}>아직 메시지가 없어요. 먼저 인사를 건네보세요.</div>
-          )}
-          <div ref={bottomRef} />
-        </div>
+              <span className="text-[11px] font-bold text-muted-foreground mt-1.5 px-1 uppercase tracking-tighter">
+                {formatTime(row.created_at)}
+              </span>
+            </div>
+          )
+        })}
+        {messages.length === 0 && (
+          <div className="text-center py-20 text-muted-foreground/50 font-bold italic">
+            따뜻한 첫 인사를 건네보세요.
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </main>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+      {/* 입력창 */}
+      <div className="p-5 pb-8 bg-white border-t border-border/50 sticky bottom-0 z-10">
+        <div className="flex gap-3 items-center bg-muted/30 p-2 rounded-[28px] focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="메시지 입력 (Enter로 전송)"
-            style={{ flex: 1, padding: 12, fontSize: 16, borderRadius: 10, border: '1px solid #d6d3d1' }}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
+            placeholder="따뜻한 마음을 전하세요..."
+            className="flex-1 px-4 py-3 bg-transparent border-none focus:ring-0 text-[18px] font-medium placeholder:text-muted-foreground/40"
           />
           <button
-            onClick={() => void sendMessage()}
-            style={{ padding: '12px 16px', borderRadius: 10, background: '#1c1917', color: '#fff', border: 'none', fontWeight: 600 }}
+            onClick={sendMessage}
+            className="w-12 h-12 flex items-center justify-center bg-primary text-white rounded-full shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
           >
-            전송
+            <Send size={20} className="ml-0.5" />
           </button>
         </div>
       </div>
@@ -250,8 +153,18 @@ export default function MessageDetailPage() {
   )
 }
 
-function formatTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+function ProfileAvatar({ avatarUrl, nickname, size = "md" }: { avatarUrl: string | null; nickname: string; size?: "sm" | "md" }) {
+  const s = size === "sm" ? "w-10 h-10 text-sm" : "w-14 h-14 text-xl"
+  return avatarUrl ? (
+    <img src={avatarUrl} alt="" className={cn(s, "rounded-full object-cover ring-2 ring-white shadow-sm")} />
+  ) : (
+    <div className={cn(s, "rounded-full bg-muted flex items-center justify-center font-black text-muted-foreground ring-2 ring-white shadow-sm")}>
+      {nickname.slice(0, 1)}
+    </div>
+  )
+}
+
+function formatTime(v: string) {
+  const d = new Date(v)
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 }

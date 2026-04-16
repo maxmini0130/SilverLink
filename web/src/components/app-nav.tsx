@@ -13,31 +13,18 @@ const LINKS = [
 
 export function AppNav() {
   return (
-    <nav
-      style={{
-        display: 'flex',
-        gap: 12,
-        flexWrap: 'wrap',
-        marginTop: 16,
-      }}
-    >
-      {LINKS.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          style={{
-            padding: '10px 14px',
-            borderRadius: 999,
-            border: '1px solid #d6d3d1',
-            textDecoration: 'none',
-            color: '#1c1917',
-            background: '#fafaf9',
-            fontWeight: 600,
-          }}
-        >
-          {link.label}
-        </Link>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-md border-t border-border/50">
+      <div className="flex items-center justify-center gap-1 px-2 py-3 max-w-2xl mx-auto">
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="flex-1 flex items-center justify-center py-2 px-1 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
     </nav>
   )
 }
