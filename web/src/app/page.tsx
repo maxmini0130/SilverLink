@@ -5,7 +5,8 @@ import { AppNav } from '@/components/app-nav'
 import { SilverButton } from '@/components/common/silver-button'
 import { SectionHeader } from '@/components/common/section-header'
 import { SectionCard } from '@/components/common/section-card'
-import { User, Image as ImageIcon, Users, ChevronRight } from 'lucide-react'
+import { EmptyState } from '@/components/common/empty-state'
+import { User, Image as ImageIcon, Users, ChevronRight, Heart } from 'lucide-react'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -112,6 +113,13 @@ export default async function HomePage() {
                   </article>
                 </Link>
               ))}
+              {peopleCards.length === 0 && (
+                <EmptyState
+                  icon={Heart}
+                  title="아직 추천할 사람이 없어요."
+                  description="프로필을 완성하면 관심사가 비슷한 분을 추천해 드려요."
+                />
+              )}
             </div>
           </section>
 
@@ -146,6 +154,13 @@ export default async function HomePage() {
                 </Link>
               )
               })}
+              {postCards.length === 0 && (
+                <EmptyState
+                  icon={ImageIcon}
+                  title="아직 올라온 피드가 없어요."
+                  description="첫 피드를 올려 이웃에게 인사해 보세요."
+                />
+              )}
             </div>
           </section>
 
@@ -170,6 +185,13 @@ export default async function HomePage() {
                   </article>
                 </Link>
               ))}
+              {groupCards.length === 0 && (
+                <EmptyState
+                  icon={Users}
+                  title="아직 참여할 모임이 없어요."
+                  description="직접 모임을 만들어 보세요!"
+                />
+              )}
             </div>
           </section>
 

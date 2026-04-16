@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Check, Heart, MessageSquare, Users, X } from 'lucide-react'
@@ -39,78 +39,96 @@ export function RelationshipActions({
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  useEffect(() => {
-    let active = true
+  const refresh = useCallback(async () => {
+    setError(null)
 
-    async function load() {
-      setLoading(true)
-      setError(null)
-
-      const { data: auth } = await supabase.auth.getUser()
-      const user = auth.user
-      if (!user || user.id === targetUserId) {
-        if (active) {
-          setState({ ...initialState, currentUserId: user?.id ?? null })
-          setLoading(false)
-        }
-        return
-      }
-
-      const [sentRes, receivedRes, friendRes, myMembershipsRes, targetMembershipsRes] = await Promise.all([
-        supabase
-          .from('relationship_requests')
-          .select('requester_user_id')
-          .eq('requester_user_id', user.id)
-          .eq('target_user_id', targetUserId)
-          .maybeSingle(),
-        supabase
-          .from('relationship_requests')
-          .select('requester_user_id')
-          .eq('requester_user_id', targetUserId)
-          .eq('target_user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('friendships')
-          .select('user_low_id')
-          .eq('user_low_id', orderedIds(user.id, targetUserId).low)
-          .eq('user_high_id', orderedIds(user.id, targetUserId).high)
-          .maybeSingle(),
-        supabase.from('group_members').select('group_id').eq('user_id', user.id),
-        supabase.from('group_members').select('group_id').eq('user_id', targetUserId),
-      ])
-
-      if (!active) return
-
-      const myGroupIds = new Set((myMembershipsRes.data ?? []).map((row) => row.group_id as string))
-      const sharedGroupCount = (targetMembershipsRes.data ?? []).filter((row) =>
-        myGroupIds.has(row.group_id as string)
-      ).length
-
-      setState({
-        currentUserId: user.id,
-        sentInterest: !!sentRes.data,
-        receivedInterest: !!receivedRes.data,
-        isFriend: !!friendRes.data,
-        sharedGroupCount,
-      })
-
-      const firstError =
-        sentRes.error ||
-        receivedRes.error ||
-        friendRes.error ||
-        myMembershipsRes.error ||
-        targetMembershipsRes.error
-
-      setError(firstError?.message ?? null)
+    const { data: auth } = await supabase.auth.getUser()
+    const user = auth.user
+    if (!user || user.id === targetUserId) {
+      setState({ ...initialState, currentUserId: user?.id ?? null })
       setLoading(false)
+      return user ?? null
     }
 
-    void load()
+    const [sentRes, receivedRes, friendRes, myMembershipsRes, targetMembershipsRes] = await Promise.all([
+      supabase
+        .from('relationship_requests')
+        .select('requester_user_id')
+        .eq('requester_user_id', user.id)
+        .eq('target_user_id', targetUserId)
+        .maybeSingle(),
+      supabase
+        .from('relationship_requests')
+        .select('requester_user_id')
+        .eq('requester_user_id', targetUserId)
+        .eq('target_user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('friendships')
+        .select('user_low_id')
+        .eq('user_low_id', orderedIds(user.id, targetUserId).low)
+        .eq('user_high_id', orderedIds(user.id, targetUserId).high)
+        .maybeSingle(),
+      supabase.from('group_members').select('group_id').eq('user_id', user.id),
+      supabase.from('group_members').select('group_id').eq('user_id', targetUserId),
+    ])
+
+    const myGroupIds = new Set((myMembershipsRes.data ?? []).map((row) => row.group_id as string))
+    const sharedGroupCount = (targetMembershipsRes.data ?? []).filter((row) =>
+      myGroupIds.has(row.group_id as string)
+    ).length
+
+    setState({
+      currentUserId: user.id,
+      sentInterest: !!sentRes.data,
+      receivedInterest: !!receivedRes.data,
+      isFriend: !!friendRes.data,
+      sharedGroupCount,
+    })
+
+    const firstError =
+      sentRes.error ||
+      receivedRes.error ||
+      friendRes.error ||
+      myMembershipsRes.error ||
+      targetMembershipsRes.error
+
+    setError(firstError?.message ?? null)
+    setLoading(false)
+    return user
+  }, [supabase, targetUserId])
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    refresh().then((user) => {
+      if (!user || user.id === targetUserId) return
+
+      channel = supabase
+        .channel(`rel:${user.id}:${targetUserId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'relationship_requests', filter: `target_user_id=eq.${user.id}` },
+          () => { void refresh() },
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'friendships' },
+          (payload) => {
+            const row = payload.new as Record<string, unknown> | undefined
+            const { low, high } = orderedIds(user.id, targetUserId)
+            if (row && row.user_low_id === low && row.user_high_id === high) {
+              void refresh()
+            }
+          },
+        )
+        .subscribe()
+    })
 
     return () => {
-      active = false
+      if (channel) supabase.removeChannel(channel)
     }
-  }, [supabase, targetUserId])
+  }, [supabase, targetUserId, refresh])
 
   const isMutualInterest = state.sentInterest && state.receivedInterest
   const canBecomeFriend = !state.isFriend && (isMutualInterest || state.sharedGroupCount > 0)
