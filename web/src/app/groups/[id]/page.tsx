@@ -129,7 +129,7 @@ export default function GroupDetailPage() {
                   <MapPin size={24} />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">장소</div>
+                  <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">장소</div>
                   <div className="text-lg font-bold text-foreground">{group.region} 근처</div>
                 </div>
               </div>
@@ -139,7 +139,7 @@ export default function GroupDetailPage() {
                   <Users size={24} />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">참여 인원</div>
+                  <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">참여 인원</div>
                   <div className="text-lg font-bold text-foreground">현재 {memberCount}명 <span className="text-muted-foreground/50 font-medium">/ 정원 {group.max_members}명</span></div>
                 </div>
               </div>
@@ -164,10 +164,15 @@ export default function GroupDetailPage() {
                     채팅방 들어가기
                   </SilverButton>
                   {!isOwner && (
-                    <button onClick={leave} disabled={busy} className="text-muted-foreground text-sm font-bold hover:text-red-500 transition-colors flex items-center justify-center gap-2 py-4">
-                      <LogOut size={16} />
-                      모임에서 나갈까요?
-                    </button>
+                    <>
+                      <button onClick={leave} disabled={busy} className="text-muted-foreground text-sm font-bold hover:text-red-500 transition-colors flex items-center justify-center gap-2 py-4">
+                        <LogOut size={16} />
+                        모임에서 나갈까요?
+                      </button>
+                      <p className="text-sm text-muted-foreground text-center -mt-2">
+                        모임을 나가도 이미 맺은 1촌과 대화는 유지돼요.
+                      </p>
+                    </>
                   )}
                 </>
               ) : (

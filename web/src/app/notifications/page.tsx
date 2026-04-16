@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { Heart, Smile, MessageSquare, Bell, CheckCheck } from 'lucide-react'
+import { EmptyState } from '@/components/common/empty-state'
 
 type NotificationItem = {
   id: string
@@ -153,13 +154,16 @@ export default function NotificationsPage() {
             >
               <KindIcon kind={item.kind} />
               <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <KindBadge kind={item.kind} />
+                  {item.createdAt && (
+                    <span className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
+                  )}
+                </div>
                 <p className="text-foreground leading-snug">
                   <span className="font-bold">{item.actorNickname}</span>
                   <span className="text-muted-foreground">{item.detail}</span>
                 </p>
-                {item.createdAt && (
-                  <p className="text-xs text-muted-foreground mt-1">{formatDate(item.createdAt)}</p>
-                )}
               </div>
               {item.unread && (
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" aria-label="읽지 않음" />
@@ -167,12 +171,11 @@ export default function NotificationsPage() {
             </Link>
           ))}
           {items.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-4xl border border-dashed border-border">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                <Bell size={40} />
-              </div>
-              <p className="text-muted-foreground font-bold text-lg">아직 알림이 없어요.</p>
-            </div>
+            <EmptyState
+              icon={Bell}
+              title="아직 알림이 없어요."
+              description="사람을 둘러보고 관심을 보내면 알림이 시작돼요."
+            />
           )}
         </section>
       </main>
@@ -190,8 +193,27 @@ function KindIcon({ kind }: { kind: NotificationItem['kind'] }) {
   return <div className={`w-10 h-10 rounded-full ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
 }
 
+function KindBadge({ kind }: { kind: NotificationItem['kind'] }) {
+  const map: Record<NotificationItem['kind'], { label: string; className: string }> = {
+    interest_received: { label: '관심', className: 'bg-secondary/10 text-secondary' },
+    post_reaction: { label: '반응', className: 'bg-green-50 text-green-700' },
+    new_conversation: { label: '대화', className: 'bg-blue-50 text-blue-700' },
+  }
+  const { label, className } = map[kind]
+  return <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${className}`}>{label}</span>
+}
+
 function formatDate(value: string) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return '방금'
+  if (diffMin < 60) return `${diffMin}분 전`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour}시간 전`
+  const diffDay = Math.floor(diffHour / 24)
+  if (diffDay < 7) return `${diffDay}일 전`
   return `${date.getMonth() + 1}/${date.getDate()}`
 }

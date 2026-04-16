@@ -132,7 +132,7 @@ export default function GroupChatPage() {
               {!mine && (
                 <Link
                   href={`/people/${m.user_id}`}
-                  className="text-xs text-muted-foreground mb-1 pl-1 hover:text-primary transition-colors font-semibold"
+                  className="text-sm text-muted-foreground mb-1 pl-1 hover:text-primary transition-colors font-semibold"
                 >
                   {nickname}
                 </Link>

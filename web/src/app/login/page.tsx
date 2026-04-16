@@ -7,11 +7,14 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24 }}>로딩 중...</div>}>
+    <Suspense fallback={<div className="p-6 text-muted-foreground">로딩 중...</div>}>
       <LoginPageInner />
     </Suspense>
   )
 }
+
+const inputClass = "w-full px-4 py-3.5 rounded-xl border border-border/60 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+const labelClass = "block text-base font-bold text-foreground mb-2"
 
 function LoginPageInner() {
   const supabase = createClient()
@@ -45,50 +48,62 @@ function LoginPageInner() {
   }
 
   return (
-    <div style={{ padding: 32, maxWidth: 440, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>SilverLink 로그인</h1>
-      <p style={{ marginTop: 8, color: '#57534e', fontSize: 16 }}>이메일과 비밀번호를 입력해 주세요.</p>
+    <div className="min-h-screen bg-background flex items-center justify-center px-5">
+      <div className="w-full max-w-md">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-primary tracking-tight">SilverLink</h1>
+          <p className="mt-3 text-muted-foreground font-medium">이메일과 비밀번호를 입력해 주세요.</p>
+        </header>
 
-      <form onSubmit={onSubmit}>
-        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>이메일</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="example@email.com"
-          required
-          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
-        />
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div>
+            <label className={labelClass}>이메일</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@email.com"
+              required
+              className={inputClass}
+            />
+          </div>
 
-        <label style={{ display: 'block', marginTop: 20, fontSize: 16, fontWeight: 600 }}>비밀번호</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ width: '100%', padding: 14, fontSize: 18, marginTop: 8, borderRadius: 10, border: '1px solid #d6d3d1', boxSizing: 'border-box' }}
-        />
+          <div>
+            <label className={labelClass}>비밀번호</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: 24, padding: 16, width: '100%', fontSize: 18, fontWeight: 700, borderRadius: 12, background: '#1c1917', color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
-        >
-          {loading ? '로그인 중...' : '로그인'}
-        </button>
+          {error && (
+            <p className="px-4 py-3 rounded-xl bg-red-50 text-red-700 font-semibold border border-red-100">
+              {error}
+            </p>
+          )}
 
-        {error && <p style={{ marginTop: 12, color: 'crimson', fontSize: 15 }}>{error}</p>}
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 rounded-2xl bg-primary text-white text-lg font-extrabold shadow-md hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? '로그인 중...' : '로그인'}
+          </button>
+        </form>
 
-      <div style={{ marginTop: 24, display: 'grid', gap: 12 }}>
-        <p style={{ fontSize: 16 }}>
-          계정이 없으신가요?{' '}
-          <Link href="/signup" style={{ fontWeight: 700, color: '#1c1917' }}>회원가입</Link>
-        </p>
-        <p style={{ fontSize: 16 }}>
-          비밀번호를 잊으셨나요?{' '}
-          <Link href="/forgot" style={{ fontWeight: 700, color: '#1c1917' }}>비밀번호 찾기</Link>
-        </p>
+        <div className="mt-8 text-center space-y-3">
+          <p className="text-base text-muted-foreground">
+            계정이 없으신가요?{' '}
+            <Link href="/signup" className="font-bold text-primary hover:underline">회원가입</Link>
+          </p>
+          <p className="text-base text-muted-foreground">
+            비밀번호를 잊으셨나요?{' '}
+            <Link href="/forgot" className="font-bold text-primary hover:underline">비밀번호 찾기</Link>
+          </p>
+        </div>
       </div>
     </div>
   )

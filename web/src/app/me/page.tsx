@@ -375,7 +375,7 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
     <div className="bg-muted/40 rounded-[20px] p-4 flex flex-col gap-1">
       <div className="text-muted-foreground">{icon}</div>
       <div className="text-2xl font-extrabold text-foreground">{value}</div>
-      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="text-sm font-semibold text-muted-foreground">{label}</div>
     </div>
   )
 }

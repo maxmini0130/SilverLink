@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { SilverButton } from '@/components/common/silver-button'
 import { Users, MapPin, Tag, Plus, ChevronRight, Calendar } from 'lucide-react'
+import { EmptyState } from '@/components/common/empty-state'
 
 type GroupRow = {
   id: string
@@ -63,12 +64,12 @@ export default function GroupsPage() {
                     <span className="px-3 py-1 bg-secondary/10 text-secondary text-xs font-bold rounded-full uppercase tracking-wider">
                       {g.category}
                     </span>
-                    <div className="flex items-center gap-1 text-muted-foreground text-xs font-medium">
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm font-medium">
                       <MapPin size={12} />
                       {g.region}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-full">
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-full">
                     <Users size={12} />
                     정원 {g.max_members}명
                   </div>
@@ -99,15 +100,16 @@ export default function GroupsPage() {
           ))}
           
           {groups.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                <Users size={40} />
-              </div>
-              <p className="text-muted-foreground font-bold italic text-lg">아직 만들어진 모임이 없어요.</p>
-              <SilverButton variant="ghost" className="mt-4" onClick={() => window.location.href='/groups/new'}>
-                첫 모임 주최하기
-              </SilverButton>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="아직 만들어진 모임이 없어요."
+              description="직접 모임을 만들어 보세요!"
+              action={
+                <SilverButton variant="ghost" onClick={() => window.location.href='/groups/new'}>
+                  첫 모임 주최하기
+                </SilverButton>
+              }
+            />
           )}
         </div>
       </main>

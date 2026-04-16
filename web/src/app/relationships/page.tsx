@@ -152,7 +152,7 @@ export default function RelationshipsPage() {
             <StatCard label="1촌" value={friendProfiles.length} icon={<Users size={16} />} />
             <StatCard label="진행 중 대화" value={conversationSummaries.length} icon={<MessageSquare size={16} />} />
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">총 {totalConnections}개의 관계 연결 포인트</p>
+          <p className="mt-3 text-sm text-muted-foreground">총 {totalConnections}개의 관계 연결 포인트</p>
         </section>
 
         <div className="mt-6 space-y-5">
@@ -227,7 +227,7 @@ export default function RelationshipsPage() {
                   <Avatar avatarUrl={item.otherProfile?.avatar_url ?? null} nickname={item.otherProfile?.nickname ?? '?'} />
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-foreground group-hover:text-primary transition-colors">{item.otherProfile?.nickname ?? '알 수 없음'}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
+                    <div className="text-sm text-muted-foreground mt-0.5">
                       {[item.otherProfile?.region, item.otherProfile?.relationship_purpose].filter(Boolean).join(' · ') || '프로필 정보 없음'}
                     </div>
                   </div>
@@ -252,8 +252,8 @@ function ProfileRow({ profile, children }: { profile: ProfileRow; children: Reac
       <Avatar avatarUrl={profile.avatar_url} nickname={profile.nickname} />
       <div className="flex-1 min-w-0">
         <div className="font-bold text-foreground">{profile.nickname}</div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-          <MapPin size={11} />
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+          <MapPin size={12} />
           <span className="truncate">{[profile.region, profile.relationship_purpose].filter(Boolean).join(' · ') || '정보 없음'}</span>
         </div>
       </div>
@@ -272,7 +272,7 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
     <div className="bg-muted/40 rounded-2xl p-3 flex flex-col gap-1">
       <div className="text-muted-foreground">{icon}</div>
       <div className="text-2xl font-extrabold text-foreground">{value}</div>
-      <div className="text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="text-sm font-semibold text-muted-foreground">{label}</div>
     </div>
   )
 }

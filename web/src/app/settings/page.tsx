@@ -119,7 +119,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div className={`font-semibold ${defaultVisibility === option.value ? 'text-primary' : 'text-foreground'}`}>{option.label}</div>
-                    <div className="text-xs text-muted-foreground">{option.desc}</div>
+                    <div className="text-sm text-muted-foreground">{option.desc}</div>
                   </div>
                 </button>
               ))}
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                   <Mail size={18} className="text-primary shrink-0" />
                   <div>
                     <div className="font-bold text-foreground group-hover:text-primary transition-colors">문의 메일</div>
-                    <div className="text-xs text-muted-foreground">support@silverlink.local</div>
+                    <div className="text-sm text-muted-foreground">support@silverlink.local</div>
                   </div>
                 </div>
                 <ChevronRight size={18} className="text-muted-foreground/50" />
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                   <KeyRound size={18} className="text-primary shrink-0" />
                   <div>
                     <div className="font-bold text-foreground group-hover:text-primary transition-colors">비밀번호 재설정</div>
-                    <div className="text-xs text-muted-foreground">로그인 문제가 있을 때 이용해 주세요</div>
+                    <div className="text-sm text-muted-foreground">로그인 문제가 있을 때 이용해 주세요</div>
                   </div>
                 </div>
                 <ChevronRight size={18} className="text-muted-foreground/50" />
