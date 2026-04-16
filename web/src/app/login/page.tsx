@@ -1,17 +1,34 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted-foreground">로딩 중...</div>}>
+      <LoginPageInner />
+    </Suspense>
+  )
+}
+
+const inputClass = "w-full px-4 py-3.5 rounded-xl border border-border/60 bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+const labelClass = "block text-base font-bold text-foreground mb-2"
+
+function LoginPageInner() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const err = searchParams.get('err')
+    if (err) setError(`인증 콜백 오류: ${err}`)
+  }, [searchParams])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,46 +48,63 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 420, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>SilverLink 로그인</h1>
+    <div className="min-h-screen bg-background flex items-center justify-center px-5">
+      <div className="w-full max-w-md">
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl font-extrabold text-primary tracking-tight">SilverLink</h1>
+          <p className="mt-3 text-muted-foreground font-medium">이메일과 비밀번호를 입력해 주세요.</p>
+        </header>
 
-      <form onSubmit={onSubmit}>
-        <label style={{ display: 'block', marginTop: 16 }}>이메일</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="example@email.com"
-          required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
-        />
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div>
+            <label className={labelClass}>이메일</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@email.com"
+              required
+              className={inputClass}
+            />
+          </div>
 
-        <label style={{ display: 'block', marginTop: 16 }}>비밀번호</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
-        />
+          <div>
+            <label className={labelClass}>비밀번호</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={inputClass}
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: 12, padding: 12, width: '100%' }}
-        >
-          {loading ? '로그인 중...' : '로그인'}
-        </button>
+          {error && (
+            <p className="px-4 py-3 rounded-xl bg-red-50 text-red-700 font-semibold border border-red-100">
+              {error}
+            </p>
+          )}
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 rounded-2xl bg-primary text-white text-lg font-extrabold shadow-md hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? '로그인 중...' : '로그인'}
+          </button>
+        </form>
 
-      <p style={{ marginTop: 16 }}>
-        계정이 없으신가요? <Link href="/signup">회원가입</Link>
-      </p>
-      <p>
-        비밀번호를 잊으셨나요? <Link href="/forgot">비밀번호 찾기</Link>
-      </p>
+        <div className="mt-8 text-center space-y-3">
+          <p className="text-base text-muted-foreground">
+            계정이 없으신가요?{' '}
+            <Link href="/signup" className="font-bold text-primary hover:underline">회원가입</Link>
+          </p>
+          <p className="text-base text-muted-foreground">
+            비밀번호를 잊으셨나요?{' '}
+            <Link href="/forgot" className="font-bold text-primary hover:underline">비밀번호 찾기</Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

@@ -31,7 +31,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/login') ||
     path.startsWith('/signup') ||
     path.startsWith('/forgot') ||
-    path.startsWith('/auth') ||
+    path.startsWith('/auth') ||          // /auth/callback (magic link, OAuth)
+    path.startsWith('/account') ||       // /account/update-password (비밀번호 재설정)
     path.startsWith('/_next') ||
     path === '/favicon.ico'
 

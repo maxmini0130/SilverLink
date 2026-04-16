@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -85,7 +86,12 @@ export default function AdminGroupsPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>모임 생성(관리자)</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>모임 생성(관리자)</h1>
+        <Link href="/admin/reports" style={{ textDecoration: 'underline', color: '#57534e' }}>
+          신고 관리
+        </Link>
+      </div>
 
       <form onSubmit={onSubmit}>
         <label style={{ display: 'block', marginTop: 16 }}>모임 이름</label>

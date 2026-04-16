@@ -1,0 +1,207 @@
+================================================================
+ SilverLink 작업 요약 (2026-04-14 ~ 2026-04-16)
+ Branch: codex/mvp-social-flows
+================================================================
+
+총 12개 커밋 · 73개 파일 변경 · +15,735줄
+
+================================================================
+1. MVP 소셜 플로우 구축 (04-14 ~ 04-15)
+================================================================
+
+[핵심 기능]
+- 사람 탐색 (/people) — 프로필 목록, 필터링, 관심 보내기
+- 프로필 상세 (/people/[id]) — 관심/1촌/대화 흐름 전체 구현
+- 관계 관리 (/relationships) — 받은 관심, 1촌 목록, 승낙/거절
+- 피드 (/posts) — 게시글 작성, 공개범위 설정, 반응(좋아요 등)
+- 피드 상세 (/posts/[id]) — 댓글은 미구현, 반응 표시
+- 1:1 대화 (/messages, /messages/[id]) — 실시간 채팅
+- 모임 (/groups) — 목록, 생성, 상세, 참여/탈퇴
+- 모임 채팅 (/groups/[id]/chat) — 실시간 그룹 채팅
+- 알림 (/notifications) — 관심 받음, 피드 반응, 새 대화
+- 마이페이지 (/me) — 프로필 요약, 통계, 설정 링크
+- 설정 (/settings) — 공개범위, 닉네임, 관심사 변경
+- 온보딩 (/onboarding) — 가입 직후 프로필 설정 플로우
+- 관리자 (/admin/reports, /admin/groups) — 신고 관리, 모임 관리
+
+[Supabase 마이그레이션 (16개)]
+- 20260413: 관계 테이블, DM 테이블, 프로필 확장
+- 20260414: 전체 스키마, RLS, 게시글, 안전/설정, 인증 트리거, 스토리지
+- 20260415: 대화 정책, 재귀 방지, 모임 정책, 메시지 Realtime/RLS,
+            알림 상태, start_conversation RPC, 공개범위 RLS
+- 20260416: relationship_requests/friendships Realtime publication
+
+[API 라우트]
+- /api/conversations — 대화 시작 (start_conversation RPC 호출)
+- /api/posts/[id] — 게시글 삭제
+- /api/blocks — 차단
+- /api/reports — 신고
+- /api/admin/reports/[id] — 신고 처리
+
+================================================================
+2. Tailwind 디자인 시스템 전환 (04-15)
+================================================================
+
+- globals.css에 CSS 변수 기반 디자인 토큰 정의
+  · primary(#5B67CA), secondary(#FF6B6B), background, foreground 등
+- SilverButton 공통 컴포넌트 (variant: primary/ghost, size: sm/md/lg)
+- AppNav 하단 네비게이션 바
+- 온보딩 페이지 전면 Tailwind 전환 (inline style 제거)
+- silverlink_design_guide.md 문서 작성
+
+================================================================
+3. 안정화 및 회귀 점검 (04-15)
+================================================================
+
+- regression_checklist.md — 페이지별 체크리스트
+- priority_plan.md — P0~P3 우선순위 정리
+- messages/page.tsx 타입 버그 수정 (bRes → bRes.data)
+- 온보딩 bg-danger/10 → bg-red-50 수정
+
+================================================================
+4. 용어 통일 + 시니어 UX 패스 (04-15 ~ 04-16)
+================================================================
+
+[용어 통일]
+- glossary.md 작성 — "한 개념 = 한 단어" 원칙
+  · 관계: 관심 / 1촌 / 대화 (흔들림 없이 고정)
+  · 공개범위 라벨 5종: 나만 보기, 1촌만 보기, 관심 있는 사람만 보기,
+    같은 모임만 보기, 전체 회원 보기
+  · 화면 이름: 홈, 사람, 피드, 대화, 나
+- lib/visibility.ts — Visibility 타입 + VISIBILITY_OPTIONS 단일 소스
+  · 5개 페이지에서 중복 정의 제거, 모두 import로 통일
+
+[시니어 UX]
+- senior_ux_checklist.md 작성 (60+ 사용자 기준)
+- text-xs → text-sm 업그레이드 (7개 페이지, 13개 사이트)
+  · me, settings, relationships, groups, groups/[id],
+    groups/[id]/chat, notifications
+- 최소 터치 타겟 48px, 기본 폰트 18px 기준 확인
+
+================================================================
+5. 공유 컴포넌트 추출 (04-15)
+================================================================
+
+- EmptyState — 아이콘+제목+설명+액션 슬롯
+  · people, posts, messages, home, groups, notifications에 적용
+- SectionHeader — 제목+부제+더보기 링크
+  · 홈 3개 섹션에 적용
+- SectionCard — 둥근 흰색 카드 래퍼
+- RelationshipBadge — 톤 기반 캡슐 뱃지 (neutral/primary/secondary/muted)
+
+================================================================
+6. 동적 채팅 자격 패널 (04-15)
+================================================================
+
+- RelationshipActions 전면 Tailwind 재작성
+- ChatEligibility 3조건 체크리스트:
+  ✓/✗ 서로 관심을 보냈는지
+  ✓/✗ 1촌 관계인지
+  ✓/✗ 같은 모임에 속해 있는지
+- 조건 미충족 시 맥락별 안내 문구 표시
+- 관심/1촌 액션 후 성공 토스트
+
+================================================================
+7. 실시간 동기화 (04-15 ~ 04-16)
+================================================================
+
+- RelationshipActions에 Supabase Realtime 구독 추가
+  · relationship_requests, friendships 테이블 변경 감지
+  · 상대방이 관심/1촌 수락 시 화면 자동 갱신
+- 20260416_realtime_relationships.sql 마이그레이션
+  · supabase_realtime publication에 두 테이블 추가
+
+================================================================
+8. 로그인/회원가입/비밀번호 찾기 Tailwind 전환 (04-16)
+================================================================
+
+- /login — 중앙 정렬 레이아웃, 디자인 시스템 인풋/버튼/에러
+- /signup — 같은 패턴 + 완료 상태 카드 레이아웃
+- /forgot — 같은 패턴 + 발송 완료 안내 카드
+
+================================================================
+9. 알림 페이지 UX 개선 (04-16)
+================================================================
+
+- KindBadge — 알림 유형별 색상 뱃지 (관심/반응/대화)
+- 상대시간 포맷 (방금, N분 전, N시간 전, N일 전, M/D)
+- EmptyState 적용
+- "모두 읽음" 버튼으로 읽음 상태 일괄 처리
+
+================================================================
+10. 모임 페이지 보완 (04-16)
+================================================================
+
+- /groups — EmptyState 적용 ("첫 모임 주최하기" 액션)
+- /groups/[id] — 탈퇴 안내 문구 추가
+  "모임을 나가도 이미 맺은 1촌과 대화는 유지돼요."
+- 네비게이션 "마이" → "나" 변경
+
+================================================================
+파일 구조 요약
+================================================================
+
+docs/
+├── flow_audit.md              플로우 A/B/C 정적 분석
+├── glossary.md                서비스 용어 사전
+├── priority_plan.md           P0~P3 우선순위
+├── regression_checklist.md    회귀 체크리스트
+├── relationship_model.md      관계 모델 설계
+├── senior_ux_checklist.md     시니어 UX 체크리스트
+├── silverlink_design_guide.md 디자인 가이드
+├── silverlink_mvp.md          MVP 기획서
+├── silverlink_prd.md          PRD
+└── trd.md                     기술 요구사항
+
+supabase/migrations/           16개 마이그레이션 파일
+
+web/src/
+├── app/
+│   ├── page.tsx               홈
+│   ├── login/page.tsx         로그인
+│   ├── signup/page.tsx        회원가입
+│   ├── forgot/page.tsx        비밀번호 찾기
+│   ├── onboarding/page.tsx    온보딩
+│   ├── people/page.tsx        사람 탐색
+│   ├── people/[id]/page.tsx   프로필 상세
+│   ├── posts/page.tsx         피드
+│   ├── posts/[id]/page.tsx    피드 상세
+│   ├── messages/page.tsx      대화 목록
+│   ├── messages/[id]/page.tsx 대화방
+│   ├── groups/page.tsx        모임 목록
+│   ├── groups/new/page.tsx    모임 생성
+│   ├── groups/[id]/page.tsx   모임 상세
+│   ├── groups/[id]/chat/      모임 채팅
+│   ├── relationships/page.tsx 관계 관리
+│   ├── notifications/page.tsx 알림
+│   ├── me/page.tsx            마이페이지
+│   ├── settings/page.tsx      설정
+│   └── admin/                 관리자
+├── components/
+│   ├── app-nav.tsx            하단 네비게이션
+│   ├── relationship-actions.tsx 관계 액션 + 채팅 자격
+│   ├── safety-actions.tsx     신고/차단
+│   └── common/
+│       ├── empty-state.tsx    빈 상태 컴포넌트
+│       ├── section-header.tsx 섹션 헤더
+│       ├── section-card.tsx   섹션 카드
+│       ├── relationship-badge.tsx 관계 뱃지
+│       └── silver-button.tsx  공통 버튼
+└── lib/
+    ├── visibility.ts          공개범위 단일 소스
+    └── utils.ts               유틸리티
+
+================================================================
+남은 작업
+================================================================
+
+[P0 — 필수]
+- 브라우저에서 A/B/C 플로우 수동 테스트
+- Supabase에 realtime 마이그레이션 적용 확인
+
+[향후 고려]
+- 프로필 사진 업로드 UI
+- 푸시 알림 연동
+- 검색 기능
+- 접근성(a11y) 심화 점검
+- 모바일 반응형 최적화
