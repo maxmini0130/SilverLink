@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { MessageSquare, ChevronRight, Clock, User } from 'lucide-react'
+import { EmptyState } from '@/components/common/empty-state'
 
 type ConversationSummary = {
   id: string
@@ -40,7 +41,7 @@ export default function MessagesPage() {
       const oIds = Array.from(new Set((memRes.data ?? []).filter(m => m.user_id !== auth.user.id).map(m => m.user_id)))
       const { data: pRes } = await supabase.from('profiles').select('user_id,nickname,avatar_url').in('user_id', oIds)
       const pMap = new Map((pRes ?? []).map(p => [p.user_id, p]))
-      const bIds = new Set((bRes ?? []).map(r => r.blocker_user_id === auth.user.id ? r.blocked_user_id : r.blocker_user_id))
+      const bIds = new Set((bRes.data ?? []).map((r) => r.blocker_user_id === auth.user!.id ? r.blocked_user_id : r.blocker_user_id))
 
       const summaries = (cRes.data ?? []).map(c => {
         const oMem = (memRes.data ?? []).find(m => m.conversation_id === c.id && m.user_id !== auth.user.id)
@@ -93,15 +94,15 @@ export default function MessagesPage() {
           ))}
 
           {items.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                <MessageSquare size={40} />
-              </div>
-              <p className="text-muted-foreground font-bold">아직 진행 중인 대화가 없어요.</p>
-              <Link href="/people" className="mt-4 inline-block text-primary font-bold hover:underline underline-offset-4">
-                새로운 인연 찾아보기
-              </Link>
-            </div>
+            <EmptyState
+              icon={MessageSquare}
+              title="아직 진행 중인 대화가 없어요."
+              action={
+                <Link href="/people" className="inline-block text-primary font-bold hover:underline underline-offset-4">
+                  새로운 인연 찾아보기
+                </Link>
+              }
+            />
           )}
         </div>
       </main>

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { RelationshipActions } from '@/components/relationship-actions'
+import { EmptyState } from '@/components/common/empty-state'
 import { MapPin, SlidersHorizontal, Users } from 'lucide-react'
 
 type ProfileRow = {
@@ -214,13 +215,11 @@ export default function PeoplePage() {
           ))}
 
           {filteredProfiles.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                <Users size={40} />
-              </div>
-              <p className="text-muted-foreground font-bold text-lg">조건에 맞는 사람이 없어요.</p>
-              <p className="text-muted-foreground text-sm mt-1">지역이나 관심사 필터를 넓혀 보세요.</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="조건에 맞는 사람이 없어요."
+              description="지역이나 관심사 필터를 넓혀 보세요."
+            />
           )}
         </section>
       </main>

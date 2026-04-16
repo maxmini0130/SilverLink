@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { SafetyActions } from '@/components/safety-actions'
 import { ChevronLeft, MapPin, Clock, Globe } from 'lucide-react'
+import { visibilityLabel } from '@/lib/visibility'
 
 type PostRow = {
   id: number
@@ -31,14 +32,6 @@ type ReactionRow = {
 }
 
 const REACTIONS = ['따뜻해요', '응원해요', '반가워요'] as const
-
-const VISIBILITY_LABELS: Record<string, string> = {
-  private: '나만 보기',
-  friends: '1촌만 보기',
-  interested: '관심 있는 사람만 보기',
-  same_group: '같은 모임 사람만 보기',
-  members: '전체 인증회원 보기',
-}
 
 export default function PostDetailPage() {
   const supabase = createClient()
@@ -209,7 +202,7 @@ export default function PostDetailPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Globe size={12} />
-                      {VISIBILITY_LABELS[post.visibility] ?? post.visibility}
+                      {visibilityLabel(post.visibility)}
                     </span>
                   </div>
                 </div>

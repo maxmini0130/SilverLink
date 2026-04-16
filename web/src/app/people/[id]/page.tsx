@@ -5,6 +5,7 @@ import { AppNav } from '@/components/app-nav'
 import { RelationshipActions } from '@/components/relationship-actions'
 import { SafetyActions } from '@/components/safety-actions'
 import { ChevronLeft, User, ShieldCheck, MapPin, Heart, Calendar } from 'lucide-react'
+import { visibilityLabel } from '@/lib/visibility'
 
 export default async function PersonDetailPage({
   params,
@@ -204,17 +205,6 @@ export default async function PersonDetailPage({
       <AppNav />
     </div>
   )
-}
-
-function visibilityLabel(v: string) {
-  switch (v) {
-    case 'private': return '나만 보기'
-    case 'friends': return '1촌만'
-    case 'interested': return '관심 있는 사람만'
-    case 'same_group': return '같은 모임'
-    case 'members': return '전체 공개'
-    default: return v
-  }
 }
 
 function ProfileAvatar({

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { User, Heart, MessageSquare, Users, Image as ImageIcon, Pencil, Trash2, X, ChevronRight } from 'lucide-react'
+import { VISIBILITY_OPTIONS, visibilityLabel } from '@/lib/visibility'
 
 type ProfileRow = {
   user_id: string
@@ -30,14 +31,6 @@ type EditForm = {
   imageUrl: string
   visibility: string
 }
-
-const VISIBILITY_OPTIONS = [
-  { value: 'private', label: '나만 보기' },
-  { value: 'friends', label: '1촌만 보기' },
-  { value: 'interested', label: '관심 있는 사람만 보기' },
-  { value: 'same_group', label: '같은 모임 사람만 보기' },
-  { value: 'members', label: '전체 인증회원 보기' },
-]
 
 export default function MePage() {
   const supabase = createClient()
@@ -400,10 +393,6 @@ function QuickLink({ title, description, href }: { title: string; description: s
       <ChevronRight size={20} className="text-muted-foreground/50 shrink-0" />
     </Link>
   )
-}
-
-function visibilityLabel(value: string) {
-  return VISIBILITY_OPTIONS.find((opt) => opt.value === value)?.label ?? value
 }
 
 function formatDate(value: string) {

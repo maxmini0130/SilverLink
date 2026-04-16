@@ -8,6 +8,8 @@ import { SafetyActions } from '@/components/safety-actions'
 import { SilverButton } from '@/components/common/silver-button'
 import { Image as ImageIcon, Plus, X, Globe, Lock, Users, Heart, MessageSquare, Camera, ChevronRight, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { visibilityLabel, type Visibility } from '@/lib/visibility'
+import { EmptyState } from '@/components/common/empty-state'
 
 type PostRow = {
   id: number
@@ -32,15 +34,17 @@ type ReactionRow = {
   reaction_type: string
 }
 
-type Visibility = 'private' | 'friends' | 'interested' | 'same_group' | 'members'
+const VISIBILITY_ICONS: Record<Visibility, any> = {
+  private: Lock,
+  friends: Users,
+  interested: Heart,
+  same_group: Users,
+  members: Globe,
+}
 
-const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; icon: any }> = [
-  { value: 'private', label: '나만 보기', icon: Lock },
-  { value: 'friends', label: '1촌만', icon: Users },
-  { value: 'interested', label: '관심 있는 사람만', icon: Heart },
-  { value: 'same_group', label: '같은 모임', icon: Users },
-  { value: 'members', label: '전체 공개', icon: Globe },
-]
+const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; icon: any }> = (
+  ['private', 'friends', 'interested', 'same_group', 'members'] as Visibility[]
+).map((v) => ({ value: v, label: visibilityLabel(v), icon: VISIBILITY_ICONS[v] }))
 
 const REACTIONS = ['따뜻해요', '응원해요', '반가워요'] as const
 
@@ -298,13 +302,16 @@ export default function PostsPage() {
           })}
           
           {visiblePosts.length === 0 && (
-            <div className="text-center py-20 bg-white rounded-[32px] border border-dashed border-border">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground/30">
-                <ImageIcon size={40} />
-              </div>
-              <p className="text-muted-foreground font-bold">아직 볼 수 있는 소식이 없어요.</p>
-              <SilverButton variant="ghost" className="mt-4" onClick={() => setShowInput(true)}>첫 소식 올리기</SilverButton>
-            </div>
+            <EmptyState
+              icon={ImageIcon}
+              title="아직 볼 수 있는 소식이 없어요."
+              description="첫 피드를 올려 이웃과 인사해 보세요."
+              action={
+                <SilverButton variant="ghost" onClick={() => setShowInput(true)}>
+                  첫 소식 올리기
+                </SilverButton>
+              }
+            />
           )}
         </div>
       </main>

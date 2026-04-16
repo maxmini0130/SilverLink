@@ -8,7 +8,7 @@ const LINKS = [
   { href: '/messages', label: '대화' },
   { href: '/relationships', label: '관계' },
   { href: '/notifications', label: '알림' },
-  { href: '/me', label: '마이' },
+  { href: '/me', label: '나' },
 ]
 
 export function AppNav() {

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppNav } from '@/components/app-nav'
 import { SilverButton } from '@/components/common/silver-button'
+import { SectionHeader } from '@/components/common/section-header'
+import { SectionCard } from '@/components/common/section-card'
 import { User, Image as ImageIcon, Users, ChevronRight } from 'lucide-react'
 
 export default async function HomePage() {
@@ -83,17 +85,11 @@ export default async function HomePage() {
         <div className="space-y-8 mt-8">
           {/* 1. 추천 사람 */}
           <section>
-            <div className="flex justify-between items-end mb-4 px-1">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">지금 만나볼 만한 사람</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {profile.region ? `${profile.region} 근처` : '내 주변'} • {profile.relationship_purpose || '새로운 인연'}
-                </p>
-              </div>
-              <Link href="/people" className="text-sm font-semibold text-primary-foreground bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
-                더 보기
-              </Link>
-            </div>
+            <SectionHeader
+              title="지금 만나볼 만한 사람"
+              subtitle={`${profile.region ? `${profile.region} 근처` : '내 주변'} • ${profile.relationship_purpose || '새로운 인연'}`}
+              moreHref="/people"
+            />
             
             <div className="grid gap-4">
               {peopleCards.map((person) => (
@@ -121,12 +117,7 @@ export default async function HomePage() {
 
           {/* 2. 최근 피드 */}
           <section>
-            <div className="flex justify-between items-end mb-4 px-1">
-              <h2 className="text-2xl font-bold text-foreground">최근 올라온 피드</h2>
-              <Link href="/posts" className="text-sm font-semibold text-primary hover:underline">
-                전체보기
-              </Link>
-            </div>
+            <SectionHeader title="최근 올라온 피드" moreHref="/posts" moreLabel="전체보기" />
             
             <div className="grid gap-4">
               {postCards.map((post) => {
@@ -160,12 +151,7 @@ export default async function HomePage() {
 
           {/* 3. 추천 모임 */}
           <section>
-            <div className="flex justify-between items-end mb-4 px-1">
-              <h2 className="text-2xl font-bold text-foreground">함께할 모임</h2>
-              <Link href="/groups" className="text-sm font-semibold text-primary hover:underline">
-                모든 모임
-              </Link>
-            </div>
+            <SectionHeader title="함께할 모임" moreHref="/groups" moreLabel="모든 모임" />
             
             <div className="grid gap-4">
               {groupCards.map((group) => (

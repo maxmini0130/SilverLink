@@ -114,11 +114,11 @@ export function RelationshipActions({
   const canChat = state.isFriend || isMutualInterest || state.sharedGroupCount > 0
   const statusLabel = useMemo(() => {
     if (!state.currentUserId || state.currentUserId === targetUserId) return null
-    if (state.isFriend) return '1촌 사이'
-    if (isMutualInterest) return '서로 관심을 보낸 사이'
+    if (state.isFriend) return '1촌 사이예요'
+    if (isMutualInterest) return '서로 관심을 보낸 사이예요'
     if (state.sentInterest) return '내가 관심을 보냈어요'
     if (state.receivedInterest) return '나에게 관심을 보낸 분이에요'
-    if (state.sharedGroupCount > 0) return `같은 모임에 함께 참여 중`
+    if (state.sharedGroupCount > 0) return '같은 모임에 함께 있어요'
     return null
   }, [
     isMutualInterest,

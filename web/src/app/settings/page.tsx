@@ -5,22 +5,13 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AppNav } from '@/components/app-nav'
 import { Globe, Shield, HeadphonesIcon, Mail, KeyRound, ChevronRight, X } from 'lucide-react'
-
-type Visibility = 'private' | 'friends' | 'interested' | 'same_group' | 'members'
+import { VISIBILITY_OPTIONS, type Visibility } from '@/lib/visibility'
 
 type BlockedProfile = {
   user_id: string
   nickname: string
   region: string | null
 }
-
-const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; desc: string }> = [
-  { value: 'private', label: '나만 보기', desc: '나 혼자만 볼 수 있어요' },
-  { value: 'friends', label: '1촌만 보기', desc: '1촌 관계인 분들에게 공개' },
-  { value: 'interested', label: '관심 있는 사람만', desc: '상호 관심을 보낸 분들에게 공개' },
-  { value: 'same_group', label: '같은 모임', desc: '같은 모임에 속한 분들에게 공개' },
-  { value: 'members', label: '전체 인증회원', desc: '가입한 모든 회원에게 공개' },
-]
 
 export default function SettingsPage() {
   const supabase = createClient()
