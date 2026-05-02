@@ -17,6 +17,7 @@ export default async function HomePage() {
     .eq('user_id', auth.user.id)
     .maybeSingle()
 
+
   if (!profile) redirect('/onboarding')
 
   // 오늘 기분 로그
@@ -35,6 +36,22 @@ export default async function HomePage() {
     .eq('visibility', 'all')
     .order('created_at', { ascending: false })
     .limit(3)
+
+  // 추천 사람 (같은 지역 + 공통 취미 기반, 최대 3명)
+  const { data: allPeople } = await supabase
+    .from('profiles')
+    .select('user_id, nickname, age_band, region, hobbies')
+    .neq('user_id', auth.user.id)
+    .limit(30)
+
+  const suggestedPeople = (allPeople ?? [])
+    .map((p: any) => {
+      const common = (p.hobbies ?? []).filter((h: string) => (profile?.hobbies ?? []).includes(h))
+      return { ...p, score: (p.region === profile?.region ? 10 : 0) + common.length, commonHobbies: common }
+    })
+    .sort((a: any, b: any) => b.score - a.score)
+    .filter((p: any) => p.score > 0)
+    .slice(0, 3)
 
   // 추천 그룹 (같은 지역 or 취미 기반, 최대 3개)
   const { data: suggestedGroups } = await supabase
@@ -68,6 +85,36 @@ export default async function HomePage() {
           <MoodLogger userId={auth.user.id} />
         )}
       </div>
+
+      {/* 추천 사람 */}
+      {suggestedPeople.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700 }}>이런 분은 어떠세요?</h2>
+            <Link href="/people" style={{ fontSize: 16, color: 'var(--primary)', textDecoration: 'none' }}>더 보기</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {suggestedPeople.map((p: any) => (
+              <Link key={p.user_id} href={`/people/${p.user_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flexShrink: 0 }}>
+                    {p.nickname.slice(0, 1)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 18 }}>{p.nickname}</div>
+                    <div style={{ color: 'var(--muted)', fontSize: 15, marginTop: 2 }}>
+                      {p.age_band}세 · {p.region}
+                      {p.commonHobbies.length > 0 && (
+                        <span style={{ color: 'var(--primary)', marginLeft: 6 }}>취미 {p.commonHobbies.length}개 일치</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 추천 그룹 */}
       {suggestedGroups && suggestedGroups.length > 0 && (

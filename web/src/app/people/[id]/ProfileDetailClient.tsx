@@ -204,7 +204,7 @@ export default function ProfileDetailClient({
           </div>
         ) : relState.sentStatus === 'accepted' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 17, color: '#16a34a' }}>✅ 관심이 수락되었어요</div>
+            <div style={{ fontSize: 17, color: '#16a34a', marginBottom: 4 }}>✅ 상호 관심 — 대화가 가능해요</div>
             <button className="btn-primary" onClick={startMessage}>
               💬 메시지 보내기
             </button>

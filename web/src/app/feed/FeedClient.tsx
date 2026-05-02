@@ -12,12 +12,22 @@ type Post = {
   likeCount: number
   liked: boolean
   user_id: string
+  visibility: 'all' | 'friends' | 'same_group'
 }
+
+const VISIBILITY_OPTIONS = [
+  { value: 'all', label: '전체 공개', desc: '모든 회원이 볼 수 있어요' },
+  { value: 'friends', label: '1촌만', desc: '1촌 관계인 분들만 볼 수 있어요' },
+  { value: 'same_group', label: '같은 모임만', desc: '함께하는 모임 멤버만 볼 수 있어요' },
+] as const
+
+type VisibilityValue = 'all' | 'friends' | 'same_group'
 
 export default function FeedClient({ initialPosts, userId }: { initialPosts: Post[]; userId: string }) {
   const supabase = createClient()
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [newContent, setNewContent] = useState('')
+  const [visibility, setVisibility] = useState<VisibilityValue>('all')
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,7 +40,7 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
 
     const { data, error: err } = await supabase
       .from('posts')
-      .insert({ user_id: userId, content, visibility: 'all' })
+      .insert({ user_id: userId, content, visibility })
       .select('id, content, created_at, user_id')
       .single()
 
@@ -43,7 +53,7 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
       .eq('user_id', userId)
       .single()
 
-    setPosts([{ ...data, nickname: prof?.nickname ?? '익명', likeCount: 0, liked: false }, ...posts])
+    setPosts([{ ...data, nickname: prof?.nickname ?? '익명', likeCount: 0, liked: false, visibility }, ...posts])
     setNewContent('')
   }
 
@@ -68,8 +78,38 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
           placeholder="오늘 있었던 일을 나눠보세요..."
-          style={{ minHeight: 100, resize: 'vertical', marginBottom: 10 }}
+          style={{ minHeight: 100, resize: 'vertical', marginBottom: 14 }}
         />
+
+        {/* 공개범위 선택 */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>공개 범위</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {VISIBILITY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setVisibility(opt.value)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  border: `2px solid ${visibility === opt.value ? 'var(--primary)' : 'var(--border)'}`,
+                  background: visibility === opt.value ? '#eff6ff' : '#fff',
+                  color: visibility === opt.value ? 'var(--primary)' : 'var(--muted)',
+                  fontSize: 15,
+                  fontWeight: visibility === opt.value ? 700 : 400,
+                  cursor: 'pointer',
+                  minHeight: 'auto',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 6 }}>
+            {VISIBILITY_OPTIONS.find((o) => o.value === visibility)?.desc}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 14, color: 'var(--muted)' }}>{newContent.length} / 1000</span>
           <button className="btn-primary" style={{ width: 'auto', padding: '12px 24px' }} onClick={submitPost} disabled={posting || !newContent.trim()}>
@@ -88,13 +128,20 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
         )}
         {posts.map((p) => (
           <div key={p.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
               <Link href={p.user_id === userId ? '/me' : `/people/${p.user_id}`} style={{ fontWeight: 700, fontSize: 17, color: 'inherit', textDecoration: 'none' }}>
                 {p.nickname}
               </Link>
-              <span style={{ fontSize: 14, color: 'var(--muted)' }}>
-                {new Date(p.created_at).toLocaleDateString('ko-KR')}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <span style={{ fontSize: 14, color: 'var(--muted)' }}>
+                  {new Date(p.created_at).toLocaleDateString('ko-KR')}
+                </span>
+                {p.visibility !== 'all' && (
+                  <span style={{ fontSize: 13, color: 'var(--primary)', background: '#eff6ff', borderRadius: 999, padding: '2px 8px' }}>
+                    {p.visibility === 'friends' ? '1촌만' : '모임만'}
+                  </span>
+                )}
+              </div>
             </div>
             <p style={{ fontSize: 17, lineHeight: 1.7, margin: 0 }}>{p.content}</p>
             <div style={{ marginTop: 12 }}>

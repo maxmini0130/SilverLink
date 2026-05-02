@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 type Msg = {
@@ -16,6 +16,7 @@ type Msg = {
 export default function GroupChatPage() {
   const supabase = createClient()
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const groupId = useMemo(() => params.id, [params.id])
 
   const [messages, setMessages] = useState<Msg[]>([])
@@ -45,7 +46,18 @@ export default function GroupChatPage() {
       setError(null)
 
       const { data: auth } = await supabase.auth.getUser()
-      if (auth.user) setMyId(auth.user.id)
+      if (!auth.user) { router.replace('/login'); return }
+      setMyId(auth.user.id)
+
+      // 비멤버 접근 차단
+      const { data: memberCheck } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId)
+        .eq('user_id', auth.user.id)
+        .maybeSingle()
+
+      if (!memberCheck) { router.replace(`/groups/${groupId}`); return }
 
       const { data: group } = await supabase.from('groups').select('title').eq('id', groupId).maybeSingle()
       if (group) setGroupTitle(group.title)
