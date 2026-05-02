@@ -17,6 +17,21 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- =====================
+-- 신규 테이블 전체 DROP (이전 마이그레이션 잔재 제거)
+-- 데이터가 없는 테이블이므로 안전하게 재생성
+-- =====================
+drop table if exists events cascade;
+drop table if exists reports cascade;
+drop table if exists blocks cascade;
+drop table if exists direct_messages cascade;
+drop table if exists conversations cascade;
+drop table if exists friendships cascade;
+drop table if exists relationship_requests cascade;
+drop table if exists post_reactions cascade;
+drop table if exists posts cascade;
+drop table if exists mood_logs cascade;
+
+-- =====================
 -- APP ADMINS (먼저 생성 — groups 정책이 참조)
 -- =====================
 create table if not exists app_admins (
@@ -60,7 +75,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- MOOD LOGS
 -- =====================
-create table if not exists mood_logs (
+create table mood_logs (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   mood_score smallint not null check (mood_score between 1 and 5),
@@ -83,7 +98,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- POSTS
 -- =====================
-create table if not exists posts (
+create table posts (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   content text not null check (char_length(content) <= 1000),
@@ -109,7 +124,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- POST REACTIONS
 -- =====================
-create table if not exists post_reactions (
+create table post_reactions (
   id bigint generated always as identity primary key,
   post_id bigint not null references posts(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -131,9 +146,7 @@ exception when duplicate_object then null; end $$;
 
 -- =====================
 -- RELATIONSHIP REQUESTS
--- 기존 테이블이 다른 컬럼명으로 있을 수 있어 DROP 후 재생성
 -- =====================
-drop table if exists relationship_requests cascade;
 create table relationship_requests (
   id bigint generated always as identity primary key,
   from_user_id uuid not null references auth.users(id) on delete cascade,
@@ -155,7 +168,7 @@ create policy "수신자만 상태 변경" on relationship_requests for update
 -- =====================
 -- FRIENDSHIPS
 -- =====================
-create table if not exists friendships (
+create table friendships (
   id bigint generated always as identity primary key,
   user_id_a uuid not null references auth.users(id) on delete cascade,
   user_id_b uuid not null references auth.users(id) on delete cascade,
@@ -181,7 +194,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- CONVERSATIONS
 -- =====================
-create table if not exists conversations (
+create table conversations (
   id bigint generated always as identity primary key,
   user_id_a uuid not null references auth.users(id) on delete cascade,
   user_id_b uuid not null references auth.users(id) on delete cascade,
@@ -208,7 +221,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- DIRECT MESSAGES
 -- =====================
-create table if not exists direct_messages (
+create table direct_messages (
   id bigint generated always as identity primary key,
   conversation_id bigint not null references conversations(id) on delete cascade,
   sender_id uuid not null references auth.users(id) on delete cascade,
@@ -316,7 +329,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- BLOCKS
 -- =====================
-create table if not exists blocks (
+create table blocks (
   id bigint generated always as identity primary key,
   blocker_id uuid not null references auth.users(id) on delete cascade,
   blocked_id uuid not null references auth.users(id) on delete cascade,
@@ -338,7 +351,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- REPORTS
 -- =====================
-create table if not exists reports (
+create table reports (
   id bigint generated always as identity primary key,
   reporter_id uuid not null references auth.users(id) on delete cascade,
   reported_user_id uuid not null references auth.users(id) on delete cascade,
@@ -368,7 +381,7 @@ exception when duplicate_object then null; end $$;
 -- =====================
 -- EVENTS
 -- =====================
-create table if not exists events (
+create table events (
   id bigint generated always as identity primary key,
   user_id uuid references auth.users(id) on delete set null,
   event_type text not null,
