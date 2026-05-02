@@ -13,6 +13,7 @@ type Profile = {
   region: string
   hobbies: string[]
   bio: string
+  avatar_url?: string | null
 }
 
 type Post = {
@@ -118,8 +119,6 @@ export default function ProfileDetailClient({
 
   if (blocked) return null
 
-  const initials = profile.nickname.slice(0, 1)
-
   return (
     <div className="page" style={{ maxWidth: 480, paddingBottom: 100 }}>
       {/* 뒤로가기 */}
@@ -129,14 +128,18 @@ export default function ProfileDetailClient({
 
       {/* 프로필 헤더 */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px', marginBottom: 16 }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: '50%',
-          background: 'var(--primary)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, fontWeight: 800, marginBottom: 16,
-        }}>
-          {initials}
-        </div>
+        {profile.avatar_url ? (
+          <img src={profile.avatar_url} alt={profile.nickname} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', marginBottom: 16 }} />
+        ) : (
+          <div style={{
+            width: 80, height: 80, borderRadius: '50%',
+            background: 'var(--primary)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 32, fontWeight: 800, marginBottom: 16,
+          }}>
+            {profile.nickname.slice(0, 1)}
+          </div>
+        )}
 
         <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{profile.nickname}</div>
         <div style={{ fontSize: 16, color: 'var(--muted)', marginBottom: 16 }}>

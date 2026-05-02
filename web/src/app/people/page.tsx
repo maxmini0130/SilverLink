@@ -21,7 +21,7 @@ export default async function PeoplePage() {
   // 다른 유저 목록 (같은 지역 or 공통 취미 우선)
   const { data: people } = await supabase
     .from('profiles')
-    .select('user_id, nickname, age_band, region, hobbies, bio')
+    .select('user_id, nickname, age_band, region, hobbies, bio, avatar_url')
     .neq('user_id', auth.user.id)
     .limit(50)
 

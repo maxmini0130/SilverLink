@@ -40,7 +40,7 @@ export default async function HomePage() {
   // 추천 사람 (같은 지역 + 공통 취미 기반, 최대 3명)
   const { data: allPeople } = await supabase
     .from('profiles')
-    .select('user_id, nickname, age_band, region, hobbies')
+    .select('user_id, nickname, age_band, region, hobbies, avatar_url')
     .neq('user_id', auth.user.id)
     .limit(30)
 
@@ -97,9 +97,13 @@ export default async function HomePage() {
             {suggestedPeople.map((p: any) => (
               <Link key={p.user_id} href={`/people/${p.user_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flexShrink: 0 }}>
-                    {p.nickname.slice(0, 1)}
-                  </div>
+                  {p.avatar_url ? (
+                    <img src={p.avatar_url} alt={p.nickname} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flexShrink: 0 }}>
+                      {p.nickname.slice(0, 1)}
+                    </div>
+                  )}
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 18 }}>{p.nickname}</div>
                     <div style={{ color: 'var(--muted)', fontSize: 15, marginTop: 2 }}>

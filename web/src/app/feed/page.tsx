@@ -12,7 +12,7 @@ export default async function FeedPage() {
 
   const { data: posts } = await supabase
     .from('posts')
-    .select('id, content, visibility, created_at, user_id, profiles(nickname)')
+    .select('id, content, visibility, image_url, created_at, user_id, profiles(nickname)')
     .eq('visibility', 'all')
     .order('created_at', { ascending: false })
     .limit(30)

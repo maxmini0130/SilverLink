@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import AvatarUpload from '@/components/AvatarUpload'
 
 const AGE_BANDS = ['60-64', '65-69', '70-74', '75-79', '80+'] as const
 const HOBBIES = ['산책', '등산', '여행', '사진', '요리', '음악', '서예', '탁구'] as const
@@ -11,10 +12,12 @@ export default function OnboardingPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  const [userId, setUserId] = useState<string | null>(null)
   const [nickname, setNickname] = useState('')
   const [ageBand, setAgeBand] = useState<(typeof AGE_BANDS)[number]>('60-64')
   const [region, setRegion] = useState('')
   const [hobbies, setHobbies] = useState<string[]>([])
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,6 +26,8 @@ export default function OnboardingPage() {
     ;(async () => {
       const { data: auth } = await supabase.auth.getUser()
       if (!auth.user) return router.replace('/login')
+
+      setUserId(auth.user.id)
 
       const { data } = await supabase
         .from('profiles')
@@ -58,6 +63,7 @@ export default function OnboardingPage() {
         age_band: ageBand,
         region: region.trim(),
         hobbies,
+        ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       })
 
       if (error) throw error
@@ -81,6 +87,18 @@ export default function OnboardingPage() {
   return (
     <div style={{ padding: 24, maxWidth: 520, margin: '0 auto' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700 }}>프로필 설정</h1>
+
+      {userId && (
+        <div style={{ marginTop: 20, marginBottom: 8 }}>
+          <AvatarUpload
+            userId={userId}
+            currentUrl={avatarUrl}
+            nickname={nickname || '?'}
+            onUploaded={(url) => setAvatarUrl(url)}
+            skipDbUpdate
+          />
+        </div>
+      )}
 
       <form onSubmit={onSubmit}>
         <label style={{ display: 'block', marginTop: 16 }}>닉네임</label>

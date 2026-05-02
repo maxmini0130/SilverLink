@@ -12,6 +12,7 @@ type Person = {
   region: string
   hobbies: string[]
   bio: string
+  avatar_url?: string | null
   commonHobbies: string[]
   sameRegion: boolean
   requestStatus: string | null
@@ -78,7 +79,15 @@ export default function PeopleClient({ people, myId }: { people: Person[]; myId:
           <div key={p.user_id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
-                <Link href={`/people/${p.user_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Link href={`/people/${p.user_id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} alt={p.nickname} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, flexShrink: 0 }}>
+                    {p.nickname.slice(0, 1)}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 19, fontWeight: 700 }}>{p.nickname}</div>
                 <div style={{ fontSize: 15, color: 'var(--muted)', marginTop: 4 }}>
                   {p.age_band}세 · {p.region}
@@ -94,6 +103,7 @@ export default function PeopleClient({ people, myId }: { people: Person[]; myId:
                   </div>
                 )}
                 {p.bio && <p style={{ fontSize: 15, marginTop: 8, color: '#444', lineHeight: 1.5 }}>{p.bio}</p>}
+                </div>
                 </Link>
               </div>
             </div>

@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import AvatarUpload from '@/components/AvatarUpload'
 
-type Profile = { user_id: string; nickname: string; age_band: string; region: string; hobbies: string[]; bio: string }
+type Profile = { user_id: string; nickname: string; age_band: string; region: string; hobbies: string[]; bio: string; avatar_url?: string | null }
 type Group = { id: string; title: string; category: string; region: string }
 type PendingRequest = { id: number; from_user_id: string; profiles: { nickname: string } }
 type Block = { blocked_id: string; profiles: { nickname: string } }
@@ -35,6 +36,7 @@ export default function MeClient({
   const [region, setRegion] = useState(profile.region)
   const [hobbies, setHobbies] = useState<string[]>(profile.hobbies ?? [])
   const [bio, setBio] = useState(profile.bio ?? '')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [requests, setRequests] = useState<PendingRequest[]>(pendingRequests)
@@ -122,6 +124,14 @@ export default function MeClient({
           </div>
         ) : (
           <div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
+              <AvatarUpload
+                userId={profile.user_id}
+                currentUrl={avatarUrl}
+                nickname={profile.nickname}
+                onUploaded={(url) => setAvatarUrl(url)}
+              />
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{profile.nickname}</div>

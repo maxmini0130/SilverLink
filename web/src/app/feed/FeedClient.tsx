@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -13,6 +13,7 @@ type Post = {
   liked: boolean
   user_id: string
   visibility: 'all' | 'friends' | 'same_group'
+  image_url?: string | null
 }
 
 const VISIBILITY_OPTIONS = [
@@ -25,11 +26,44 @@ type VisibilityValue = 'all' | 'friends' | 'same_group'
 
 export default function FeedClient({ initialPosts, userId }: { initialPosts: Post[]; userId: string }) {
   const supabase = createClient()
+  const imageInputRef = useRef<HTMLInputElement>(null)
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [newContent, setNewContent] = useState('')
   const [visibility, setVisibility] = useState<VisibilityValue>('all')
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageUploading, setImageUploading] = useState(false)
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('사진은 10MB 이하만 올릴 수 있어요.'); return }
+    if (!file.type.startsWith('image/')) { setError('이미지 파일만 올릴 수 있어요.'); return }
+
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
+
+    setImageUploading(true)
+    setError(null)
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const filePath = `${userId}/${Date.now()}.${ext}`
+    const { error: uploadErr } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file, { contentType: file.type })
+
+    if (uploadErr) {
+      setError('이미지 업로드에 실패했어요.')
+      setImageUploading(false)
+      setImagePreview(null)
+      return
+    }
+    const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(filePath)
+    setImageUrl(urlData.publicUrl)
+    setImageUploading(false)
+  }
 
   async function submitPost() {
     const content = newContent.trim()
@@ -40,7 +74,7 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
 
     const { data, error: err } = await supabase
       .from('posts')
-      .insert({ user_id: userId, content, visibility })
+      .insert({ user_id: userId, content, visibility, ...(imageUrl ? { image_url: imageUrl } : {}) })
       .select('id, content, created_at, user_id')
       .single()
 
@@ -53,8 +87,10 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
       .eq('user_id', userId)
       .single()
 
-    setPosts([{ ...data, nickname: prof?.nickname ?? '익명', likeCount: 0, liked: false, visibility }, ...posts])
+    setPosts([{ ...data, nickname: prof?.nickname ?? '익명', likeCount: 0, liked: false, visibility, image_url: imageUrl }, ...posts])
     setNewContent('')
+    setImageUrl(null)
+    setImagePreview(null)
   }
 
   async function toggleLike(post: Post) {
@@ -80,6 +116,34 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
           placeholder="오늘 있었던 일을 나눠보세요..."
           style={{ minHeight: 100, resize: 'vertical', marginBottom: 14 }}
         />
+
+        {/* 이미지 첨부 */}
+        <div style={{ marginBottom: 14 }}>
+          {imagePreview ? (
+            <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
+              <img src={imagePreview} alt="첨부 이미지" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block' }} />
+              <button
+                type="button"
+                onClick={() => { setImagePreview(null); setImageUrl(null) }}
+                style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'auto', padding: 0 }}
+              >×</button>
+              {imageUploading && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
+                  <span style={{ fontSize: 14 }}>업로드 중...</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              style={{ padding: '8px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: '#fff', fontSize: 15, cursor: 'pointer', color: 'var(--muted)', minHeight: 'auto' }}
+            >
+              📷 사진 추가
+            </button>
+          )}
+          <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
+        </div>
 
         {/* 공개범위 선택 */}
         <div style={{ marginBottom: 14 }}>
@@ -144,6 +208,9 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
               </div>
             </div>
             <p style={{ fontSize: 17, lineHeight: 1.7, margin: 0 }}>{p.content}</p>
+            {p.image_url && (
+              <img src={p.image_url} alt="게시물 이미지" style={{ width: '100%', borderRadius: 8, marginTop: 10, maxHeight: 300, objectFit: 'cover' }} />
+            )}
             <div style={{ marginTop: 12 }}>
               <button
                 onClick={() => toggleLike(p)}
