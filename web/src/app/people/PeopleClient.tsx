@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 type Person = {
@@ -76,7 +77,8 @@ export default function PeopleClient({ people, myId }: { people: Person[]; myId:
         {list.map((p) => (
           <div key={p.user_id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
+              <div style={{ flex: 1 }}>
+                <Link href={`/people/${p.user_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ fontSize: 19, fontWeight: 700 }}>{p.nickname}</div>
                 <div style={{ fontSize: 15, color: 'var(--muted)', marginTop: 4 }}>
                   {p.age_band}세 · {p.region}
@@ -92,6 +94,7 @@ export default function PeopleClient({ people, myId }: { people: Person[]; myId:
                   </div>
                 )}
                 {p.bio && <p style={{ fontSize: 15, marginTop: 8, color: '#444', lineHeight: 1.5 }}>{p.bio}</p>}
+                </Link>
               </div>
             </div>
 

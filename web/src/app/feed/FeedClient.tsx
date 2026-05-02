@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 type Post = {
@@ -88,7 +89,9 @@ export default function FeedClient({ initialPosts, userId }: { initialPosts: Pos
         {posts.map((p) => (
           <div key={p.id} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontWeight: 700, fontSize: 17 }}>{p.nickname}</span>
+              <Link href={p.user_id === userId ? '/me' : `/people/${p.user_id}`} style={{ fontWeight: 700, fontSize: 17, color: 'inherit', textDecoration: 'none' }}>
+                {p.nickname}
+              </Link>
               <span style={{ fontSize: 14, color: 'var(--muted)' }}>
                 {new Date(p.created_at).toLocaleDateString('ko-KR')}
               </span>
