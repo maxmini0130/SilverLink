@@ -61,6 +61,13 @@ export default function OnboardingPage() {
       })
 
       if (error) throw error
+
+      await supabase.from('events').insert({
+        user_id: user.id,
+        event_type: 'profile_completed',
+        payload: { nickname: nickname.trim(), region: region.trim(), hobbies },
+      })
+
       router.replace('/')
     } catch (err: unknown) {
       const message =

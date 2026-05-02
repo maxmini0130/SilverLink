@@ -18,12 +18,21 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError(error.message)
+      setError('이메일 또는 비밀번호가 올바르지 않아요.')
       setLoading(false)
       return
+    }
+
+    // 로그인 이벤트 로깅
+    if (data.user) {
+      await supabase.from('events').insert({
+        user_id: data.user.id,
+        event_type: 'login',
+        payload: {},
+      })
     }
 
     router.push('/')
@@ -31,45 +40,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 420, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700 }}>SilverLink 로그인</h1>
+    <div className="page" style={{ maxWidth: 420, paddingTop: 60 }}>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🌿</div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>SilverLink</h1>
+        <p style={{ color: 'var(--muted)', marginTop: 6 }}>로그인</p>
+      </div>
 
       <form onSubmit={onSubmit}>
-        <label style={{ display: 'block', marginTop: 16 }}>이메일</label>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>이메일</label>
         <input
+          className="input"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="example@email.com"
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ marginBottom: 16 }}
         />
 
-        <label style={{ display: 'block', marginTop: 16 }}>비밀번호</label>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: 8 }}>비밀번호</label>
         <input
+          className="input"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ width: '100%', padding: 12, fontSize: 16 }}
+          style={{ marginBottom: 8 }}
         />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: 12, padding: 12, width: '100%' }}
-        >
+        {error && <p className="error-text" style={{ marginBottom: 8 }}>{error}</p>}
+
+        <button className="btn-primary" type="submit" disabled={loading} style={{ marginTop: 8 }}>
           {loading ? '로그인 중...' : '로그인'}
         </button>
-
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
       </form>
 
-      <p style={{ marginTop: 16 }}>
-        계정이 없으신가요? <Link href="/signup">회원가입</Link>
+      <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--muted)', fontSize: 17 }}>
+        <Link href="/forgot" style={{ color: 'var(--primary)' }}>비밀번호를 잊으셨나요?</Link>
       </p>
-      <p>
-        비밀번호를 잊으셨나요? <Link href="/forgot">비밀번호 찾기</Link>
+      <p style={{ textAlign: 'center', marginTop: 8, color: 'var(--muted)', fontSize: 17 }}>
+        계정이 없으신가요?{' '}
+        <Link href="/signup" style={{ color: 'var(--primary)', fontWeight: 600 }}>회원가입</Link>
       </p>
     </div>
   )
