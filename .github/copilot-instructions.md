@@ -1,7 +1,7 @@
-# SilverLink AI Coding Instructions
+# WithDay AI Coding Instructions
 
 ## Project Overview
-**SilverLink** is a mobile web app (PWA) connecting Korean seniors (60-75) through hobby-based local groups. The MVP validates a "join group → chat → daily mood check" retention loop. See `prd.md` (product) and `trd.md` (technical) before coding.
+**WithDay** is a mobile web app (PWA) connecting Korean seniors (60-75) through hobby-based local groups. The MVP validates a "join group → chat → daily mood check" retention loop. See `prd.md` (product) and `trd.md` (technical) before coding.
 
 ## Tech Stack (Locked)
 - **Frontend**: Next.js (App Router) + TypeScript + Tailwind CSS

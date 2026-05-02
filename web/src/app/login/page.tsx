@@ -43,7 +43,7 @@ export default function LoginPage() {
     <div className="page" style={{ maxWidth: 420, paddingTop: 60 }}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>🌿</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>SilverLink</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--primary)' }}>WithDay</h1>
         <p style={{ color: 'var(--muted)', marginTop: 6 }}>로그인</p>
       </div>
 

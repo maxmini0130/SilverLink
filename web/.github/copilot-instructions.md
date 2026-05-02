@@ -1,4 +1,4 @@
-# Copilot Instructions for SilverLink/web
+# Copilot Instructions for WithDay/web
 
 This repository is a small [Next.js 13](https://nextjs.org/) project that uses the **app directory** and Supabase for authentication and data.  The goal of this document is to give an AI agent enough context to be productive on day one.  Treat it as the "memory" of how this code is organised and what conventions are in use.
 

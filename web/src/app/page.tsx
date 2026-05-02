@@ -51,7 +51,7 @@ export default async function HomePage() {
     <div className="page">
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--primary)' }}>SilverLink</h1>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--primary)' }}>WithDay</h1>
         <span style={{ fontSize: 16, color: 'var(--muted)' }}>{profile.nickname}님</span>
       </div>
 

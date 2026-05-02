@@ -1,8 +1,8 @@
-# SilverLink MVP — PRD (Product Requirements Document)
+# WithDay MVP — PRD (Product Requirements Document)
 
 ## 1) 제품 개요
 
-- 제품명: SilverLink (가칭)
+- 제품명: WithDay (가칭)
 - 형태: 모바일 웹(PWA)
 - 1차 목표: **관계 형성 루프**가 실제로 도는지 검증
   - **모임 참여 → 모임 채팅 → 하루 1회 기분 체크(재방문)**

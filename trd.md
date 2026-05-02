@@ -1,4 +1,4 @@
-# SilverLink MVP — TRD (Technical Requirements Document)
+# WithDay MVP — TRD (Technical Requirements Document)
 
 ## 1) 기술 스택(고정)
 

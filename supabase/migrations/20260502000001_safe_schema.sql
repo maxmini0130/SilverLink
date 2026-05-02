@@ -1,4 +1,4 @@
--- SilverLink Safe Migration (idempotent)
+-- WithDay Safe Migration (idempotent)
 -- 기존 테이블/정책이 있어도 안전하게 실행됩니다.
 
 -- =====================

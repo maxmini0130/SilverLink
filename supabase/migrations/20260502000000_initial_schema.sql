@@ -1,4 +1,4 @@
--- SilverLink Initial Schema
+-- WithDay Initial Schema
 -- 2026-05-02
 
 -- =====================

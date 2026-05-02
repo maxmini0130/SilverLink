@@ -6,7 +6,7 @@ import BottomNav from '@/components/BottomNav'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
-  title: 'SilverLink',
+  title: 'WithDay',
   description: '시니어를 위한 소셜 네트워크',
 }
 
