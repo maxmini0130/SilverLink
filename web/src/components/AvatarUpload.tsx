@@ -1,5 +1,7 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -36,7 +38,6 @@ export default function AvatarUpload({ userId, currentUrl, nickname, onUploaded,
     setError(null)
     setUploading(true)
 
-    // 미리보기
     const reader = new FileReader()
     reader.onload = (ev) => setPreview(ev.target?.result as string)
     reader.readAsDataURL(file)
@@ -49,7 +50,7 @@ export default function AvatarUpload({ userId, currentUrl, nickname, onUploaded,
       .upload(filePath, file, { upsert: true, contentType: file.type })
 
     if (uploadErr) {
-      setError('업로드에 실패했어요. 다시 시도해 주세요.')
+      setError('업로드에 실패했어요. 다시 시도해주세요.')
       setUploading(false)
       return
     }
@@ -63,7 +64,10 @@ export default function AvatarUpload({ userId, currentUrl, nickname, onUploaded,
         .update({ avatar_url: urlData.publicUrl })
         .eq('user_id', userId)
       setUploading(false)
-      if (dbErr) { setError('저장에 실패했어요.'); return }
+      if (dbErr) {
+        setError('저장에 실패했어요.')
+        return
+      }
     } else {
       setUploading(false)
     }
@@ -80,11 +84,18 @@ export default function AvatarUpload({ userId, currentUrl, nickname, onUploaded,
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
         style={{
-          width: 88, height: 88, borderRadius: '50%',
-          overflow: 'hidden', border: '3px solid var(--primary)',
-          cursor: 'pointer', background: 'var(--primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 0, position: 'relative',
+          width: 88,
+          height: 88,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          border: '3px solid var(--primary)',
+          cursor: 'pointer',
+          background: 'var(--primary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          position: 'relative',
         }}
       >
         {preview ? (
@@ -102,13 +113,7 @@ export default function AvatarUpload({ userId, currentUrl, nickname, onUploaded,
         {uploading ? '업로드 중...' : '사진 변경'}
       </span>
       {error && <p style={{ fontSize: 14, color: '#dc2626', margin: 0 }}>{error}</p>}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleFile}
-      />
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
     </div>
   )
 }

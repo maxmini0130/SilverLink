@@ -4,21 +4,39 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import FeedClient from './FeedClient'
 
+type BlockedUserRow = {
+  user_id: string
+}
+
+type PostVisibility = 'all' | 'friends' | 'same_group'
+
+type PostRow = {
+  id: number
+  content: string
+  visibility: PostVisibility
+  image_url: string | null
+  created_at: string
+  user_id: string
+  profiles: { nickname: string | null } | { nickname: string | null }[] | null
+}
+
+type ReactionRow = {
+  post_id: number
+}
+
+function getNickname(profiles: PostRow['profiles']) {
+  if (Array.isArray(profiles)) return profiles[0]?.nickname ?? '익명'
+  return profiles?.nickname ?? '익명'
+}
+
 export default async function FeedPage() {
   const supabase = await createClient()
 
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) redirect('/login')
 
-  // 차단 관계 양방향 조회 (내가 차단한 + 나를 차단한)
-  const { data: blockData } = await supabase
-    .from('blocks')
-    .select('blocker_id, blocked_id')
-    .or(`blocker_id.eq.${auth.user.id},blocked_id.eq.${auth.user.id}`)
-
-  const blockedIds = (blockData ?? []).map((b: any) =>
-    b.blocker_id === auth.user.id ? b.blocked_id : b.blocker_id
-  )
+  const { data: blockData } = await supabase.rpc('get_blocked_user_ids')
+  const blockedIds = ((blockData ?? []) as BlockedUserRow[]).map((row) => row.user_id)
 
   let postsQuery = supabase
     .from('posts')
@@ -32,31 +50,31 @@ export default async function FeedPage() {
   }
 
   const { data: posts } = await postsQuery
+  const postRows = (posts ?? []) as unknown as PostRow[]
 
   const { data: myReactions } = await supabase
     .from('post_reactions')
     .select('post_id')
     .eq('user_id', auth.user.id)
 
-  const likedSet = new Set((myReactions ?? []).map((r: any) => r.post_id))
+  const likedSet = new Set(((myReactions ?? []) as ReactionRow[]).map((row) => row.post_id))
 
-  // 각 게시글의 좋아요 수
-  const postIds = (posts ?? []).map((p: any) => p.id)
+  const postIds = postRows.map((post) => post.id)
   const { data: reactionCounts } = await supabase
     .from('post_reactions')
     .select('post_id')
     .in('post_id', postIds.length > 0 ? postIds : [-1])
 
   const countMap: Record<number, number> = {}
-  for (const r of reactionCounts ?? []) {
-    countMap[(r as any).post_id] = (countMap[(r as any).post_id] ?? 0) + 1
+  for (const row of (reactionCounts ?? []) as ReactionRow[]) {
+    countMap[row.post_id] = (countMap[row.post_id] ?? 0) + 1
   }
 
-  const enriched = (posts ?? []).map((p: any) => ({
-    ...p,
-    nickname: p.profiles?.nickname ?? '익명',
-    likeCount: countMap[p.id] ?? 0,
-    liked: likedSet.has(p.id),
+  const enriched = postRows.map((post) => ({
+    ...post,
+    nickname: getNickname(post.profiles),
+    likeCount: countMap[post.id] ?? 0,
+    liked: likedSet.has(post.id),
   }))
 
   return <FeedClient initialPosts={enriched} userId={auth.user.id} />

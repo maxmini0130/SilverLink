@@ -31,23 +31,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 시니어 친화: 최소 터치 타겟 */
-button, a, [role="button"] {
+button,
+a,
+[role="button"] {
   min-height: 52px;
   cursor: pointer;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-size: 18px;
   min-height: 52px;
 }
 
-/* 하단 내비게이션 여백 */
 main {
   padding-bottom: calc(var(--nav-height) + 16px);
 }
 
-/* 공통 버튼 */
 .btn-primary {
   background: var(--primary);
   color: white;
@@ -60,8 +61,15 @@ main {
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-primary:hover { background: var(--primary-hover); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .btn-outline {
   background: transparent;
@@ -74,9 +82,12 @@ main {
   cursor: pointer;
   transition: all 0.15s;
 }
-.btn-outline:hover { background: var(--primary); color: white; }
 
-/* 카드 */
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -84,7 +95,6 @@ main {
   padding: 20px;
 }
 
-/* 입력 필드 */
 .input {
   width: 100%;
   padding: 14px 16px;
@@ -96,16 +106,17 @@ main {
   outline: none;
   transition: border-color 0.15s;
 }
-.input:focus { border-color: var(--primary); }
 
-/* 페이지 래퍼 */
+.input:focus {
+  border-color: var(--primary);
+}
+
 .page {
   max-width: 640px;
   margin: 0 auto;
   padding: 24px 20px;
 }
 
-/* 에러 */
 .error-text {
   color: #dc2626;
   font-size: 16px;

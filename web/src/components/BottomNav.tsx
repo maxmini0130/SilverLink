@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
-  { href: '/', label: '홈', icon: '🏠' },
-  { href: '/people', label: '사람', icon: '👥' },
-  { href: '/groups', label: '모임', icon: '🏘️' },
-  { href: '/messages', label: '대화', icon: '💬' },
-  { href: '/me', label: '내 정보', icon: '👤' },
+  { href: '/', label: '홈', icon: '⌂' },
+  { href: '/people', label: '사람', icon: '♡' },
+  { href: '/groups', label: '모임', icon: '◎' },
+  { href: '/messages', label: '대화', icon: '▱' },
+  { href: '/notifications', label: '알림', icon: '!' },
+  { href: '/me', label: '내정보', icon: '○' },
 ]
 
 export default function BottomNav() {
@@ -21,6 +22,7 @@ export default function BottomNav() {
 
   return (
     <nav
+      aria-label="주요 메뉴"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -39,6 +41,7 @@ export default function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? 'page' : undefined}
             style={{
               flex: 1,
               display: 'flex',
@@ -49,12 +52,12 @@ export default function BottomNav() {
               textDecoration: 'none',
               color: active ? 'var(--primary)' : 'var(--muted)',
               minHeight: 'var(--nav-height)',
-              fontWeight: active ? 700 : 400,
+              fontWeight: active ? 700 : 500,
               transition: 'color 0.15s',
             }}
           >
-            <span style={{ fontSize: 24 }}>{item.icon}</span>
-            <span style={{ fontSize: 12 }}>{item.label}</span>
+            <span style={{ fontSize: 22, lineHeight: 1 }}>{item.icon}</span>
+            <span style={{ fontSize: 11, lineHeight: 1.2 }}>{item.label}</span>
           </Link>
         )
       })}
