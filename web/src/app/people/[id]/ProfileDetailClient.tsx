@@ -61,6 +61,18 @@ export default function ProfileDetailClient({
     if (!error) setRelState((s) => ({ ...s, sentStatus: 'pending' }))
   }
 
+  async function cancelInterest() {
+    setLoading(true)
+    await supabase
+      .from('relationship_requests')
+      .delete()
+      .eq('from_user_id', myId)
+      .eq('to_user_id', profile.user_id)
+      .eq('status', 'pending')
+    setLoading(false)
+    setRelState((s) => ({ ...s, sentStatus: null }))
+  }
+
   async function acceptRequest() {
     if (!relState.receivedRequest) return
     setLoading(true)
@@ -202,8 +214,21 @@ export default function ProfileDetailClient({
             </div>
           </div>
         ) : relState.sentStatus === 'pending' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, color: 'var(--muted)' }}>
-            ⏳ 관심을 보냈어요. 상대방의 수락을 기다리고 있어요.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 17, color: 'var(--muted)' }}>
+              ⏳ 관심을 보냈어요. 상대방의 수락을 기다리고 있어요.
+            </div>
+            <button
+              disabled={loading}
+              onClick={cancelInterest}
+              style={{
+                minHeight: 52, borderRadius: 12,
+                border: '1.5px solid var(--border)', background: '#fff',
+                fontSize: 17, fontWeight: 600, cursor: 'pointer', color: 'var(--muted)',
+              }}
+            >
+              {loading ? '처리 중...' : '관심 취소'}
+            </button>
           </div>
         ) : relState.sentStatus === 'accepted' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

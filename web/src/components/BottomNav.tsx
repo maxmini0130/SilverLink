@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation'
 const NAV_ITEMS = [
   { href: '/', label: '홈', icon: '🏠' },
   { href: '/people', label: '사람', icon: '👥' },
-  { href: '/feed', label: '피드', icon: '📰' },
-  { href: '/messages', label: '채팅', icon: '💬' },
+  { href: '/groups', label: '모임', icon: '🏘️' },
+  { href: '/messages', label: '대화', icon: '💬' },
   { href: '/me', label: '내 정보', icon: '👤' },
 ]
 
